@@ -1,65 +1,179 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import { PROJECTS, TASKS, ASSIGNEES } from "@/data";
+import { Priority, Status, Task } from "@/types";
+import { Sidebar } from "@/components/sidebar";
+import { TaskList, TaskScope, TaskViewMode } from "@/components/task-list";
+import { TaskDetailPanel } from "@/components/task-detail-panel";
 
 export default function Home() {
+  const [tasks, setTasks] = useState<Task[]>(TASKS);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(TASKS[0]?.id ?? null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createStatus, setCreateStatus] = useState<Status | undefined>(undefined);
+  const [showLoading, setShowLoading] = useState(false);
+  const [showEmpty, setShowEmpty] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<TaskViewMode>("list");
+  const [scope, setScope] = useState<TaskScope>("all");
+
+  const selectedTask = useMemo(
+    () => tasks.find((task) => task.id === selectedTaskId) ?? null,
+    [selectedTaskId, tasks]
+  );
+
+  const filteredTasks = useMemo(() => {
+    if (["all", "inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)) {
+      return tasks;
+    }
+    return tasks.filter((task) => task.projectId === selectedProjectId);
+  }, [selectedProjectId, tasks]);
+
+  useEffect(() => {
+    if (!selectedTaskId) {
+      return;
+    }
+
+    const selectedStillVisible = filteredTasks.some((task) => task.id === selectedTaskId);
+    if (!selectedStillVisible && !isCreating) {
+      setSelectedTaskId(null);
+    }
+  }, [filteredTasks, isCreating, selectedTaskId]);
+
+  function buildIdentifier(projectId: string, taskList: Task[]) {
+    const project = PROJECTS.find((entry) => entry.id === projectId);
+    const prefix = project?.identifier ?? "ORB";
+    const maxNumber = taskList.reduce((max, task) => {
+      if (!task.identifier.startsWith(`${prefix}-`)) {
+        return max;
+      }
+      const numeric = Number(task.identifier.replace(`${prefix}-`, ""));
+      return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
+    }, 0);
+
+    return `${prefix}-${String(maxNumber + 1).padStart(3, "0")}`;
+  }
+
+  function openCreateIssue(status?: Status) {
+    setCreateStatus(status);
+    setSelectedTaskId(null);
+    setIsCreating(true);
+  }
+
+  function handleCreateTask(task: Omit<Task, "id" | "identifier" | "createdAt">) {
+    const nextTask: Task = {
+      ...task,
+      id: `task-${Date.now().toString(36)}`,
+      identifier: buildIdentifier(task.projectId, tasks),
+      createdAt: new Date().toISOString(),
+    };
+
+    setTasks((prev) => [nextTask, ...prev]);
+    setIsCreating(false);
+    setSelectedTaskId(nextTask.id);
+  }
+
+  function handleUpdateTask(updatedTask: Task) {
+    setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
+  }
+
+  const preferredProjectId =
+    selectedProjectId === "all" || ["inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)
+      ? PROJECTS[0].id
+      : selectedProjectId;
+  const nextIdentifier = buildIdentifier(preferredProjectId, tasks);
+  const isPanelOpen = isCreating || Boolean(selectedTask);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
+      <main className="relative flex h-full overflow-hidden">
+        <Sidebar
+          projects={PROJECTS}
+          selectedProjectId={selectedProjectId}
+          onSelectProject={setSelectedProjectId}
+          onCreateIssue={() => openCreateIssue()}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <TaskList
+          tasks={showEmpty ? [] : filteredTasks}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={(taskId) => {
+            setSelectedTaskId(taskId);
+            setIsCreating(false);
+          }}
+          onCreateIssue={openCreateIssue}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          scope={scope}
+          onScopeChange={setScope}
+          loading={showLoading}
+          showEmpty={showEmpty}
+          currentUserId={ASSIGNEES[0].id}
+        />
+
+        <AnimatePresence>
+          {isPanelOpen ? (
+            <TaskDetailPanel
+              key={selectedTask?.id ?? "create"}
+              task={isCreating ? null : selectedTask}
+              isCreating={isCreating}
+              projects={PROJECTS}
+              assignees={ASSIGNEES}
+              nextIdentifier={nextIdentifier}
+              initialStatus={createStatus}
+              onClose={() => {
+                setIsCreating(false);
+                setSelectedTaskId(null);
+              }}
+              onCreateTask={handleCreateTask}
+              onUpdateTask={handleUpdateTask}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          ) : null}
+        </AnimatePresence>
       </main>
+
+      {/* <section
+        className="fixed bottom-4 right-4 w-52 rounded-lg border p-3"
+        style={{
+          backgroundColor: "var(--bg-elevated)",
+          borderColor: "var(--border)",
+          boxShadow: "0 18px 36px rgba(0, 0, 0, 0.35)",
+        }}
+      >
+        <h3 className="mb-2 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+          Dev Controls
+        </h3>
+        <label className="mb-2 flex items-center justify-between text-xs" style={{ color: "var(--text-muted)" }}>
+          Show loading
+          <input
+            type="checkbox"
+            checked={showLoading}
+            onChange={(event) => {
+              setShowLoading(event.target.checked);
+              if (event.target.checked) {
+                setShowEmpty(false);
+              }
+            }}
+            className="accent-[var(--accent)]"
+          />
+        </label>
+        <label className="flex items-center justify-between text-xs" style={{ color: "var(--text-muted)" }}>
+          Show empty state
+          <input
+            type="checkbox"
+            checked={showEmpty}
+            onChange={(event) => {
+              setShowEmpty(event.target.checked);
+              if (event.target.checked) {
+                setShowLoading(false);
+              }
+            }}
+            className="accent-[var(--accent)]"
+          />
+        </label>
+      </section> */}
     </div>
   );
 }
