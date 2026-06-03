@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -74,6 +74,7 @@ export function TaskList({
   showEmpty,
   assignees,
 }: TaskListProps) {
+  const filterMenuRef = useRef<HTMLDivElement>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<Status, boolean>>({
     backlog: false,
@@ -95,6 +96,19 @@ export function TaskList({
   function updateFilters(nextFilters: Partial<TaskFilters>) {
     onFiltersChange({ ...filters, ...nextFilters });
   }
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!filterMenuRef.current || filterMenuRef.current.contains(event.target as Node)) {
+        return;
+      }
+
+      setFiltersOpen(false);
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
 
   const content = (() => {
     if (loading) {
@@ -250,7 +264,7 @@ export function TaskList({
             />
           </label>
 
-          <div className="relative">
+          <div ref={filterMenuRef} className="relative">
             <button
               type="button"
               className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"

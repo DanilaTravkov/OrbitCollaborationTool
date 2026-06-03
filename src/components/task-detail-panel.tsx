@@ -120,12 +120,13 @@ export function TaskDetailPanel({
       }
       if (!containerRef.current.contains(event.target as Node)) {
         setOpenDropdown(null);
+        onClose();
       }
     }
 
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, []);
+  }, [onClose]);
 
   const project = useMemo(
     () => projects.find((entry) => entry.id === draft.projectId),

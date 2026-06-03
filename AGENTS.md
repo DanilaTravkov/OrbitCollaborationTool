@@ -59,6 +59,8 @@ Use this framework for non-trivial work:
 
 Use `pnpm` in `my-app`.
 
+Before launching a new Node/Next dev server, inspect for already-running project Node processes and stop the stale ones first. Do this especially before `pnpm dev`, `next dev`, or any command that writes to `.next`. Prefer checking command lines/ports so unrelated Node processes are not stopped accidentally.
+
 Current mandatory checks:
 
 - `pnpm lint`
