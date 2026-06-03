@@ -111,7 +111,6 @@ export default function Home() {
           projects={PROJECTS}
           selectedProjectId={selectedProjectId}
           onSelectProject={setSelectedProjectId}
-          onCreateIssue={() => openCreateIssue()}
         />
 
         <TaskList

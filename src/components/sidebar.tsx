@@ -7,7 +7,6 @@ import {
   FolderKanban,
   Inbox,
   Layers2,
-  Plus,
   Search,
   Settings,
   Users,
@@ -18,7 +17,6 @@ type SidebarProps = {
   projects: Project[];
   selectedProjectId: string;
   onSelectProject: (projectId: string) => void;
-  onCreateIssue: () => void;
 };
 
 const navItems = [
@@ -33,7 +31,6 @@ export function Sidebar({
   projects,
   selectedProjectId,
   onSelectProject,
-  onCreateIssue,
 }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const activeNav = useMemo(() => {
@@ -72,20 +69,6 @@ export function Sidebar({
           Search
         </span>
         <span className="font-mono text-[10px] text-[var(--text-dim)]">?K</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={onCreateIssue}
-        className="mb-4 flex h-9 w-full items-center justify-center gap-2 rounded-md text-xs font-semibold"
-        style={{
-          backgroundColor: "var(--accent)",
-          color: "#e6e8f5",
-          boxShadow: "0 10px 24px rgba(99,102,241,0.35)",
-        }}
-      >
-        <Plus className="h-3.5 w-3.5" />
-        New Issue
       </button>
 
       <nav className="space-y-1">
