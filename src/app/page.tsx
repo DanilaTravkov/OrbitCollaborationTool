@@ -7,6 +7,12 @@ import { Priority, Status, Task } from "@/types";
 import { Sidebar } from "@/components/sidebar";
 import { TaskList, TaskScope, TaskViewMode } from "@/components/task-list";
 import { TaskDetailPanel } from "@/components/task-detail-panel";
+import {
+  emptyTaskFilters,
+  hasActiveTaskFilters,
+  matchesTaskFilters,
+  TaskFilters,
+} from "@/lib/task-utils";
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(TASKS);
@@ -18,29 +24,41 @@ export default function Home() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<TaskViewMode>("list");
   const [scope, setScope] = useState<TaskScope>("all");
+  const [filters, setFilters] = useState<TaskFilters>(emptyTaskFilters);
 
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks]
   );
 
-  const filteredTasks = useMemo(() => {
+  const projectTasks = useMemo(() => {
     if (["all", "inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)) {
       return tasks;
     }
     return tasks.filter((task) => task.projectId === selectedProjectId);
   }, [selectedProjectId, tasks]);
 
+  const scopedTasks = useMemo(
+    () => projectTasks.filter((task) => (scope === "mine" ? task.assignee?.id === ASSIGNEES[0].id : true)),
+    [projectTasks, scope]
+  );
+
+  const activeFilters = hasActiveTaskFilters(filters);
+  const visibleTasks = useMemo(
+    () => scopedTasks.filter((task) => matchesTaskFilters(task, filters)),
+    [filters, scopedTasks]
+  );
+
   useEffect(() => {
     if (!selectedTaskId) {
       return;
     }
 
-    const selectedStillVisible = filteredTasks.some((task) => task.id === selectedTaskId);
+    const selectedStillVisible = visibleTasks.some((task) => task.id === selectedTaskId);
     if (!selectedStillVisible && !isCreating) {
       setSelectedTaskId(null);
     }
-  }, [filteredTasks, isCreating, selectedTaskId]);
+  }, [isCreating, selectedTaskId, visibleTasks]);
 
   function buildIdentifier(projectId: string, taskList: Task[]) {
     const project = PROJECTS.find((entry) => entry.id === projectId);
@@ -97,7 +115,7 @@ export default function Home() {
         />
 
         <TaskList
-          tasks={showEmpty ? [] : filteredTasks}
+          tasks={showEmpty ? [] : visibleTasks}
           selectedTaskId={selectedTaskId}
           onSelectTask={(taskId) => {
             setSelectedTaskId(taskId);
@@ -108,9 +126,13 @@ export default function Home() {
           onViewModeChange={setViewMode}
           scope={scope}
           onScopeChange={setScope}
+          filters={filters}
+          onFiltersChange={setFilters}
+          activeFilters={activeFilters}
+          totalCount={scopedTasks.length}
           loading={showLoading}
           showEmpty={showEmpty}
-          currentUserId={ASSIGNEES[0].id}
+          assignees={ASSIGNEES}
         />
 
         <AnimatePresence>
