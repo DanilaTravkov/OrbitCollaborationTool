@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   Search,
@@ -29,6 +30,7 @@ import { EmptyState } from "@/components/empty-state";
 
 export type TaskViewMode = "list" | "board";
 export type TaskScope = "all" | "mine";
+type TaskSort = "default" | "priority" | "due-date" | "newest" | "title";
 
 type TaskListProps = {
   tasks: Task[];
@@ -57,6 +59,38 @@ const dueDateOptions: { value: DueDateFilter; label: string }[] = [
   { value: "no-date", label: "No date" },
 ];
 
+const sortOptions: { value: TaskSort; label: string }[] = [
+  { value: "default", label: "Default order" },
+  { value: "priority", label: "Priority" },
+  { value: "due-date", label: "Due date" },
+  { value: "newest", label: "Newest" },
+  { value: "title", label: "Title" },
+];
+
+const priorityRank: Record<Priority, number> = {
+  urgent: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+  none: 4,
+};
+
+function compareOptionalDate(a?: string, b?: string) {
+  if (!a && !b) {
+    return 0;
+  }
+
+  if (!a) {
+    return 1;
+  }
+
+  if (!b) {
+    return -1;
+  }
+
+  return new Date(a).getTime() - new Date(b).getTime();
+}
+
 export function TaskList({
   tasks,
   selectedTaskId,
@@ -75,7 +109,10 @@ export function TaskList({
   assignees,
 }: TaskListProps) {
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const displayMenuRef = useRef<HTMLDivElement>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<TaskSort>("default");
   const [collapsed, setCollapsed] = useState<Record<Status, boolean>>({
     backlog: false,
     todo: false,
@@ -86,12 +123,34 @@ export function TaskList({
   });
   const [groupHovered, setGroupHovered] = useState<Status | null>(null);
 
+  const sortedTasks = useMemo(() => {
+    if (sortBy === "default") {
+      return tasks;
+    }
+
+    return [...tasks].sort((a, b) => {
+      if (sortBy === "priority") {
+        return priorityRank[a.priority] - priorityRank[b.priority];
+      }
+
+      if (sortBy === "due-date") {
+        return compareOptionalDate(a.dueDate, b.dueDate);
+      }
+
+      if (sortBy === "newest") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+
+      return a.title.localeCompare(b.title);
+    });
+  }, [sortBy, tasks]);
+
   const grouped = useMemo(() => {
     return STATUS_ORDER.map((status) => ({
       status,
-      tasks: tasks.filter((task) => task.status === status),
+      tasks: sortedTasks.filter((task) => task.status === status),
     }));
-  }, [tasks]);
+  }, [sortedTasks]);
 
   function updateFilters(nextFilters: Partial<TaskFilters>) {
     onFiltersChange({ ...filters, ...nextFilters });
@@ -99,11 +158,16 @@ export function TaskList({
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
-      if (!filterMenuRef.current || filterMenuRef.current.contains(event.target as Node)) {
+      if (filterMenuRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      if (displayMenuRef.current?.contains(event.target as Node)) {
         return;
       }
 
       setFiltersOpen(false);
+      setDisplayOpen(false);
     }
 
     document.addEventListener("mousedown", onPointerDown);
@@ -115,7 +179,7 @@ export function TaskList({
       return <LoadingState mode={viewMode} />;
     }
 
-    if (showEmpty || tasks.length === 0) {
+    if (showEmpty || sortedTasks.length === 0) {
       return (
         <EmptyState
           onCreateIssue={() => onCreateIssue()}
@@ -132,7 +196,7 @@ export function TaskList({
     if (viewMode === "board") {
       return (
         <KanbanBoard
-          tasks={tasks}
+          tasks={sortedTasks}
           selectedTaskId={selectedTaskId}
           onSelectTask={onSelectTask}
           onCreateIssue={onCreateIssue}
@@ -264,15 +328,32 @@ export function TaskList({
             />
           </label>
 
+          <button
+            type="button"
+            onClick={() => onCreateIssue()}
+            className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold"
+            style={{
+              backgroundColor: "var(--accent)",
+              color: "#e6e8f5",
+              boxShadow: "0 8px 18px rgba(99,102,241,0.28)",
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Issue
+          </button>
+
           <div ref={filterMenuRef} className="relative">
             <button
               type="button"
-              className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
+              className="flex h-8 shrink-0 items-center gap-1 rounded-md border px-2 text-xs"
               style={{
                 borderColor: activeFilters ? "var(--accent)" : "var(--border)",
                 color: activeFilters ? "var(--text-primary)" : "var(--text-muted)",
               }}
-              onClick={() => setFiltersOpen((prev) => !prev)}
+              onClick={() => {
+                setFiltersOpen((prev) => !prev);
+                setDisplayOpen(false);
+              }}
             >
               <Funnel className="h-3.5 w-3.5" />
               Filter
@@ -356,16 +437,58 @@ export function TaskList({
             ) : null}
           </div>
 
-          <button
-            type="button"
-            className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
-            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Display
-          </button>
+          <div ref={displayMenuRef} className="relative">
+            <button
+              type="button"
+              className="flex h-8 shrink-0 items-center gap-1 rounded-md border px-2 text-xs"
+              style={{
+                borderColor: sortBy !== "default" ? "var(--accent)" : "var(--border)",
+                color: sortBy !== "default" ? "var(--text-primary)" : "var(--text-muted)",
+              }}
+              onClick={() => {
+                setDisplayOpen((prev) => !prev);
+                setFiltersOpen(false);
+              }}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Display
+            </button>
 
-          <div className="flex rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
+            {displayOpen ? (
+              <div
+                className="absolute right-0 z-30 mt-2 w-44 rounded-md border p-2"
+                style={{
+                  borderColor: "var(--border)",
+                  backgroundColor: "var(--bg-elevated)",
+                  boxShadow: "0 18px 36px rgba(0,0,0,0.35)",
+                }}
+              >
+                <span className="mb-1 block px-2 text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                  Sort by
+                </span>
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className="flex h-8 w-full items-center justify-between rounded px-2 text-xs"
+                    style={{
+                      color: sortBy === option.value ? "var(--text-primary)" : "var(--text-muted)",
+                      backgroundColor: sortBy === option.value ? "var(--bg-overlay)" : "transparent",
+                    }}
+                    onClick={() => {
+                      setSortBy(option.value);
+                      setDisplayOpen(false);
+                    }}
+                  >
+                    {option.label}
+                    {sortBy === option.value ? <Check className="h-3.5 w-3.5" /> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex shrink-0 rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
             <button
               type="button"
               className="rounded p-1"
