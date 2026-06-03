@@ -2,9 +2,15 @@ import { Layers } from "lucide-react";
 
 type EmptyStateProps = {
   onCreateIssue: () => void;
+  title?: string;
+  description?: string;
 };
 
-export function EmptyState({ onCreateIssue }: EmptyStateProps) {
+export function EmptyState({
+  onCreateIssue,
+  title = "No issues yet",
+  description = "Create your first issue and start moving work from backlog to done.",
+}: EmptyStateProps) {
   return (
     <div className="flex h-full items-center justify-center px-6">
       <div className="mx-auto flex max-w-sm flex-col items-center text-center">
@@ -19,10 +25,10 @@ export function EmptyState({ onCreateIssue }: EmptyStateProps) {
           <Layers className="h-7 w-7" />
         </div>
         <h3 className="mb-2 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-          No issues yet
+          {title}
         </h3>
         <p className="mb-5 text-sm" style={{ color: "var(--text-muted)" }}>
-          Create your first issue and start moving work from backlog to done.
+          {description}
         </p>
         <button
           type="button"

@@ -4,14 +4,24 @@ import { useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  Search,
   LayoutGrid,
   LayoutList,
   Plus,
   SlidersHorizontal,
   Funnel,
+  X,
 } from "lucide-react";
-import { STATUS_ORDER, Status, Task } from "@/types";
-import { statusLabels, StatusIcon } from "@/lib/task-utils";
+import { Assignee, Priority, STATUS_ORDER, Status, Task } from "@/types";
+import {
+  DueDateFilter,
+  emptyTaskFilters,
+  priorityLabels,
+  statusLabels,
+  StatusIcon,
+  TaskFilters,
+  toggleFilterValue,
+} from "@/lib/task-utils";
 import { TaskItem } from "@/components/task-item";
 import { KanbanBoard } from "@/components/kanban-board";
 import { LoadingState } from "@/components/loading-state";
@@ -29,10 +39,23 @@ type TaskListProps = {
   onViewModeChange: (mode: TaskViewMode) => void;
   scope: TaskScope;
   onScopeChange: (scope: TaskScope) => void;
+  filters: TaskFilters;
+  onFiltersChange: (filters: TaskFilters) => void;
+  activeFilters: boolean;
+  totalCount: number;
   loading: boolean;
   showEmpty: boolean;
-  currentUserId: string;
+  assignees: Assignee[];
 };
+
+const priorityOptions: Priority[] = ["urgent", "high", "medium", "low", "none"];
+
+const dueDateOptions: { value: DueDateFilter; label: string }[] = [
+  { value: "all", label: "Any due date" },
+  { value: "overdue", label: "Overdue" },
+  { value: "due-soon", label: "Due soon" },
+  { value: "no-date", label: "No date" },
+];
 
 export function TaskList({
   tasks,
@@ -43,10 +66,15 @@ export function TaskList({
   onViewModeChange,
   scope,
   onScopeChange,
+  filters,
+  onFiltersChange,
+  activeFilters,
+  totalCount,
   loading,
   showEmpty,
-  currentUserId,
+  assignees,
 }: TaskListProps) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<Status, boolean>>({
     backlog: false,
     todo: false,
@@ -57,31 +85,40 @@ export function TaskList({
   });
   const [groupHovered, setGroupHovered] = useState<Status | null>(null);
 
-  const visibleTasks = useMemo(
-    () => tasks.filter((task) => (scope === "mine" ? task.assignee?.id === currentUserId : true)),
-    [currentUserId, scope, tasks]
-  );
-
   const grouped = useMemo(() => {
     return STATUS_ORDER.map((status) => ({
       status,
-      tasks: visibleTasks.filter((task) => task.status === status),
+      tasks: tasks.filter((task) => task.status === status),
     }));
-  }, [visibleTasks]);
+  }, [tasks]);
+
+  function updateFilters(nextFilters: Partial<TaskFilters>) {
+    onFiltersChange({ ...filters, ...nextFilters });
+  }
 
   const content = (() => {
     if (loading) {
       return <LoadingState mode={viewMode} />;
     }
 
-    if (showEmpty) {
-      return <EmptyState onCreateIssue={() => onCreateIssue()} />;
+    if (showEmpty || tasks.length === 0) {
+      return (
+        <EmptyState
+          onCreateIssue={() => onCreateIssue()}
+          title={activeFilters ? "No matching issues" : "No issues yet"}
+          description={
+            activeFilters
+              ? "Clear or adjust filters to bring issues back into view."
+              : "Create your first issue and start moving work from backlog to done."
+          }
+        />
+      );
     }
 
     if (viewMode === "board") {
       return (
         <KanbanBoard
-          tasks={visibleTasks}
+          tasks={tasks}
           selectedTaskId={selectedTaskId}
           onSelectTask={onSelectTask}
           onCreateIssue={onCreateIssue}
@@ -169,10 +206,10 @@ export function TaskList({
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
       <header
-        className="flex h-14 items-center justify-between border-b px-4"
+        className="flex h-14 items-center justify-between gap-3 border-b px-4"
         style={{ borderColor: "var(--border)" }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
             <LayoutList className="h-4 w-4" />
             All Issues
@@ -193,17 +230,118 @@ export function TaskList({
               </button>
             ))}
           </div>
+          <span className="font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
+            {tasks.length}/{totalCount}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
-            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+        <div className="flex min-w-0 items-center gap-2">
+          <label
+            className="flex h-8 w-56 min-w-36 items-center gap-2 rounded-md border px-2"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}
           >
-            <Funnel className="h-3.5 w-3.5" />
-            Filter
-          </button>
+            <Search className="h-3.5 w-3.5 text-[var(--text-dim)]" />
+            <input
+              value={filters.query}
+              onChange={(event) => updateFilters({ query: event.target.value })}
+              placeholder="Search issues"
+              className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+              style={{ color: "var(--text-primary)" }}
+            />
+          </label>
+
+          <div className="relative">
+            <button
+              type="button"
+              className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
+              style={{
+                borderColor: activeFilters ? "var(--accent)" : "var(--border)",
+                color: activeFilters ? "var(--text-primary)" : "var(--text-muted)",
+              }}
+              onClick={() => setFiltersOpen((prev) => !prev)}
+            >
+              <Funnel className="h-3.5 w-3.5" />
+              Filter
+            </button>
+
+            {filtersOpen ? (
+              <div
+                className="absolute right-0 z-30 mt-2 w-72 rounded-md border p-3"
+                style={{
+                  borderColor: "var(--border)",
+                  backgroundColor: "var(--bg-elevated)",
+                  boxShadow: "0 18px 36px rgba(0,0,0,0.35)",
+                }}
+              >
+                <FilterGroup title="Status">
+                  {STATUS_ORDER.map((status) => (
+                    <FilterOption
+                      key={status}
+                      active={filters.statuses.includes(status)}
+                      label={statusLabels[status]}
+                      onClick={() => updateFilters({ statuses: toggleFilterValue(filters.statuses, status) })}
+                    />
+                  ))}
+                </FilterGroup>
+
+                <FilterGroup title="Priority">
+                  {priorityOptions.map((priority) => (
+                    <FilterOption
+                      key={priority}
+                      active={filters.priorities.includes(priority)}
+                      label={priorityLabels[priority]}
+                      onClick={() => updateFilters({ priorities: toggleFilterValue(filters.priorities, priority) })}
+                    />
+                  ))}
+                </FilterGroup>
+
+                <FilterGroup title="Assignee">
+                  {assignees.map((assignee) => (
+                    <FilterOption
+                      key={assignee.id}
+                      active={filters.assigneeIds.includes(assignee.id)}
+                      label={assignee.name}
+                      onClick={() => updateFilters({ assigneeIds: toggleFilterValue(filters.assigneeIds, assignee.id) })}
+                    />
+                  ))}
+                  <FilterOption
+                    active={filters.assigneeIds.includes("unassigned")}
+                    label="Unassigned"
+                    onClick={() => updateFilters({ assigneeIds: toggleFilterValue(filters.assigneeIds, "unassigned") })}
+                  />
+                </FilterGroup>
+
+                <div className="mb-3">
+                  <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                    Due date
+                  </span>
+                  <select
+                    value={filters.dueDate}
+                    onChange={(event) => updateFilters({ dueDate: event.target.value as DueDateFilter })}
+                    className="h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none"
+                    style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+                  >
+                    {dueDateOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  className="flex h-8 w-full items-center justify-center gap-1 rounded-md border text-xs"
+                  style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                  onClick={() => onFiltersChange(emptyTaskFilters)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear filters
+                </button>
+              </div>
+            ) : null}
+          </div>
+
           <button
             type="button"
             className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
@@ -244,5 +382,40 @@ export function TaskList({
 
       <div className="min-h-0 flex-1">{content}</div>
     </section>
+  );
+}
+
+function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-3">
+      <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+        {title}
+      </span>
+      <div className="flex flex-wrap gap-1">{children}</div>
+    </div>
+  );
+}
+
+function FilterOption({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="rounded px-2 py-1 text-[11px]"
+      style={{
+        backgroundColor: active ? "var(--accent)" : "var(--bg-base)",
+        color: active ? "#edf0ff" : "var(--text-muted)",
+      }}
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }

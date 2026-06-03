@@ -10,7 +10,7 @@ import {
   LoaderCircle,
   XCircle,
 } from "lucide-react";
-import { Priority, Status } from "@/types";
+import { Priority, Status, Task } from "@/types";
 
 const iconClassName = "h-3.5 w-3.5";
 
@@ -94,4 +94,89 @@ export function formatDueDate(dueDate?: string) {
     month: "short",
     day: "numeric",
   }).format(parsed);
+}
+
+export type DueDateFilter = "all" | "overdue" | "due-soon" | "no-date";
+
+export type TaskFilters = {
+  query: string;
+  statuses: Status[];
+  priorities: Priority[];
+  assigneeIds: string[];
+  dueDate: DueDateFilter;
+};
+
+export const emptyTaskFilters: TaskFilters = {
+  query: "",
+  statuses: [],
+  priorities: [],
+  assigneeIds: [],
+  dueDate: "all",
+};
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function isDueDateMatch(dueDate: string | undefined, filter: DueDateFilter) {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (!dueDate) {
+    return filter === "no-date";
+  }
+
+  const parsed = startOfDay(new Date(dueDate));
+  if (Number.isNaN(parsed.getTime())) {
+    return false;
+  }
+
+  const today = startOfDay(new Date());
+  const dueSoonLimit = new Date(today);
+  dueSoonLimit.setDate(today.getDate() + 7);
+
+  if (filter === "overdue") {
+    return parsed < today;
+  }
+
+  return parsed >= today && parsed <= dueSoonLimit;
+}
+
+export function hasActiveTaskFilters(filters: TaskFilters) {
+  return (
+    filters.query.trim().length > 0 ||
+    filters.statuses.length > 0 ||
+    filters.priorities.length > 0 ||
+    filters.assigneeIds.length > 0 ||
+    filters.dueDate !== "all"
+  );
+}
+
+export function matchesTaskFilters(task: Task, filters: TaskFilters) {
+  const query = filters.query.trim().toLowerCase();
+  const queryTarget = [
+    task.identifier,
+    task.title,
+    task.description,
+    ...task.labels,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    (!query || queryTarget.includes(query)) &&
+    (!filters.statuses.length || filters.statuses.includes(task.status)) &&
+    (!filters.priorities.length || filters.priorities.includes(task.priority)) &&
+    (!filters.assigneeIds.length || filters.assigneeIds.includes(task.assignee?.id ?? "unassigned")) &&
+    isDueDateMatch(task.dueDate, filters.dueDate)
+  );
+}
+
+export function toggleFilterValue<T>(values: T[], value: T) {
+  return values.includes(value)
+    ? values.filter((entry) => entry !== value)
+    : [...values, value];
 }
