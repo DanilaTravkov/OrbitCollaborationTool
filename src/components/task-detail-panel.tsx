@@ -9,6 +9,7 @@ import {
   Flag,
   Send,
   Tag,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ type TaskDetailPanelProps = {
   onClose: () => void;
   onCreateTask: (task: Omit<Task, "id" | "identifier" | "createdAt">) => void;
   onUpdateTask: (task: Task) => void;
+  onDeleteTask: (taskId: string) => void;
 };
 
 type EditableTask = {
@@ -38,7 +40,7 @@ type EditableTask = {
   projectId: string;
 };
 
-type DropdownKey = "status" | "priority" | "assignee" | "project" | null;
+type DropdownKey = "status" | "priority" | "assignee" | "project" | "actions" | null;
 type PanelTab = "description" | "activity";
 
 const statusOptions: Status[] = [
@@ -88,12 +90,14 @@ export function TaskDetailPanel({
   onClose,
   onCreateTask,
   onUpdateTask,
+  onDeleteTask,
 }: TaskDetailPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [openDropdown, setOpenDropdown] = useState<DropdownKey>(null);
   const [activeTab, setActiveTab] = useState<PanelTab>("description");
   const [labelsInput, setLabelsInput] = useState("");
   const [activityInput, setActivityInput] = useState("");
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [draft, setDraft] = useState<EditableTask>(() =>
     toDraft(task, {
       assignee: assignees[0] ?? null,
@@ -111,6 +115,8 @@ export function TaskDetailPanel({
       })
     );
     setLabelsInput(task?.labels.join(", ") ?? "");
+    setDeleteConfirming(false);
+    setOpenDropdown(null);
   }, [assignees, initialStatus, isCreating, projects, task]);
 
   useEffect(() => {
@@ -186,6 +192,14 @@ export function TaskDetailPanel({
     });
   }
 
+  function handleDelete() {
+    if (!task || isCreating) {
+      return;
+    }
+
+    onDeleteTask(task.id);
+  }
+
   function DropdownButton({
     name,
     value,
@@ -249,13 +263,68 @@ export function TaskDetailPanel({
             {identifier}
           </span>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
-              aria-label="More"
-            >
-              <CircleEllipsis className="h-4 w-4" />
-            </button>
+            {!isCreating ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
+                  aria-label="Issue actions"
+                  onClick={() => {
+                    setOpenDropdown((prev) => (prev === "actions" ? null : "actions"));
+                    setDeleteConfirming(false);
+                  }}
+                >
+                  <CircleEllipsis className="h-4 w-4" />
+                </button>
+
+                {openDropdown === "actions" ? (
+                  <div
+                    className="absolute right-0 z-30 mt-2 w-48 rounded-md border p-2"
+                    style={{
+                      borderColor: "var(--border)",
+                      backgroundColor: "var(--bg-elevated)",
+                      boxShadow: "0 18px 36px rgba(0,0,0,0.35)",
+                    }}
+                  >
+                    {deleteConfirming ? (
+                      <div className="space-y-2">
+                        <p className="px-1 text-xs leading-5" style={{ color: "var(--text-muted)" }}>
+                          Delete this issue permanently?
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="h-8 flex-1 rounded-md border text-xs"
+                            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                            onClick={() => setDeleteConfirming(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="h-8 flex-1 rounded-md text-xs font-medium"
+                            style={{ backgroundColor: "#dc2626", color: "#fff1f2" }}
+                            onClick={handleDelete}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="flex h-8 w-full items-center gap-2 rounded px-2 text-left text-xs"
+                        style={{ color: "#fca5a5" }}
+                        onClick={() => setDeleteConfirming(true)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete issue
+                      </button>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <button
               type="button"
               className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"

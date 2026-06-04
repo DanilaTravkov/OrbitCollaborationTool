@@ -97,6 +97,12 @@ export default function Home() {
     setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
   }
 
+  function handleDeleteTask(taskId: string) {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    setSelectedTaskId(null);
+    setIsCreating(false);
+  }
+
   const preferredProjectId =
     selectedProjectId === "all" || ["inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)
       ? PROJECTS[0].id
@@ -150,6 +156,7 @@ export default function Home() {
               }}
               onCreateTask={handleCreateTask}
               onUpdateTask={handleUpdateTask}
+              onDeleteTask={handleDeleteTask}
             />
           ) : null}
         </AnimatePresence>
