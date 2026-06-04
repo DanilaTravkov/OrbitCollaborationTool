@@ -1,11 +1,14 @@
 import { Assignee, Project, Task } from "@/types";
 
 export const ASSIGNEES: Assignee[] = [
-  { id: "a1", name: "Alex Kim", initials: "AK", color: "#6366f1" },
+  { id: "a1", name: "Lena Brooks", initials: "LB", color: "#6366f1" },
   { id: "a2", name: "Sam Chen", initials: "SC", color: "#10b981" },
   { id: "a3", name: "Jordan Lee", initials: "JL", color: "#f59e0b" },
   { id: "a4", name: "Morgan Davis", initials: "MD", color: "#3b82f6" },
+  { id: "a5", name: "Alex Kim", initials: "AK", color: "#8b5cf6" },
 ];
+
+export const CURRENT_USER = ASSIGNEES[0];
 
 export const PROJECTS: Project[] = [
   { id: "p1", name: "Atlas", identifier: "ATL", color: "#6366f1" },
