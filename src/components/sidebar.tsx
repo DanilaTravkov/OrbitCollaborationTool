@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import { CURRENT_USER } from "@/data";
 import { Project } from "@/types";
 
 type SidebarProps = {
@@ -148,30 +150,33 @@ export function Sidebar({
           className="flex items-center justify-between rounded-lg border px-2 py-2"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}
         >
-          <div className="flex items-center gap-2">
+          <Link
+            href="/profile"
+            className="flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold"
-              style={{ backgroundColor: "#29304a", color: "#dbe2ff" }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+              style={{ backgroundColor: CURRENT_USER.color, color: "#eef0ff" }}
             >
-              LB
+              {CURRENT_USER.initials}
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
-                Lena Brooks
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                {CURRENT_USER.name}
               </span>
-              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              <span className="truncate text-[10px]" style={{ color: "var(--text-muted)" }}>
                 Pro plan
               </span>
             </div>
-          </div>
-          <button
-            type="button"
+          </Link>
+          <Link
+            href="/profile"
             className="rounded-md p-1"
             style={{ color: "var(--text-muted)" }}
-            aria-label="Settings"
+            aria-label="Profile settings"
           >
             <Settings className="h-3.5 w-3.5" />
-          </button>
+          </Link>
         </div>
       </div>
     </aside>

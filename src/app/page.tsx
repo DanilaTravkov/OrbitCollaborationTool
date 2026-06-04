@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { PROJECTS, TASKS, ASSIGNEES } from "@/data";
+import { PROJECTS, TASKS, ASSIGNEES, CURRENT_USER } from "@/data";
 import { Priority, Status, Task } from "@/types";
 import { Sidebar } from "@/components/sidebar";
 import { TaskList, TaskScope, TaskViewMode } from "@/components/task-list";
@@ -39,7 +39,7 @@ export default function Home() {
   }, [selectedProjectId, tasks]);
 
   const scopedTasks = useMemo(
-    () => projectTasks.filter((task) => (scope === "mine" ? task.assignee?.id === ASSIGNEES[0].id : true)),
+    () => projectTasks.filter((task) => (scope === "mine" ? task.assignee?.id === CURRENT_USER.id : true)),
     [projectTasks, scope]
   );
 
