@@ -7,6 +7,7 @@ import type { Status, Task } from "@/types";
 import { Sidebar } from "@/components/sidebar";
 import { TaskList } from "@/components/task-list";
 import { TaskDetailPanel } from "@/components/task-detail-panel";
+import { MemberWorkloadOverview } from "@/components/member-workload-overview";
 import {
   emptyTaskFilters,
   hasActiveTaskFilters,
@@ -18,6 +19,7 @@ import {
   writeWorkspaceState,
 } from "@/lib/workspace-storage";
 import type { TaskScope, TaskViewMode } from "@/lib/workspace-storage";
+import { resolveWorkspaceView } from "@/lib/workspace-views";
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(TASKS);
@@ -37,16 +39,24 @@ export default function Home() {
     [selectedTaskId, tasks]
   );
 
-  const projectTasks = useMemo(() => {
-    if (["all", "inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)) {
-      return tasks;
-    }
-    return tasks.filter((task) => task.projectId === selectedProjectId);
-  }, [selectedProjectId, tasks]);
+  const workspaceView = useMemo(
+    () =>
+      resolveWorkspaceView({
+        selectionId: selectedProjectId,
+        tasks,
+        projects: PROJECTS,
+        assignees: ASSIGNEES,
+        currentUserId: CURRENT_USER.id,
+      }),
+    [selectedProjectId, tasks]
+  );
 
   const scopedTasks = useMemo(
-    () => projectTasks.filter((task) => (scope === "mine" ? task.assignee?.id === CURRENT_USER.id : true)),
-    [projectTasks, scope]
+    () =>
+      workspaceView.tasks.filter((task) =>
+        workspaceView.allowsScope && scope === "mine" ? task.assignee?.id === CURRENT_USER.id : true
+      ),
+    [scope, workspaceView]
   );
 
   const activeFilters = hasActiveTaskFilters(filters);
@@ -138,12 +148,10 @@ export default function Home() {
     setIsCreating(false);
   }
 
-  const preferredProjectId =
-    selectedProjectId === "all" || ["inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)
-      ? PROJECTS[0].id
-      : selectedProjectId;
+  const preferredProjectId = workspaceView.createProjectId;
   const nextIdentifier = buildIdentifier(preferredProjectId, tasks);
-  const isPanelOpen = isCreating || Boolean(selectedTask);
+  const isIssueView = workspaceView.kind === "issues";
+  const isPanelOpen = isIssueView && (isCreating || Boolean(selectedTask));
 
   return (
     <div className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
@@ -154,26 +162,38 @@ export default function Home() {
           onSelectProject={setSelectedProjectId}
         />
 
-        <TaskList
-          tasks={showEmpty ? [] : visibleTasks}
-          selectedTaskId={selectedTaskId}
-          onSelectTask={(taskId) => {
-            setSelectedTaskId(taskId);
-            setIsCreating(false);
-          }}
-          onCreateIssue={openCreateIssue}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          scope={scope}
-          onScopeChange={setScope}
-          filters={filters}
-          onFiltersChange={setFilters}
-          activeFilters={activeFilters}
-          totalCount={scopedTasks.length}
-          loading={showLoading}
-          showEmpty={showEmpty}
-          assignees={ASSIGNEES}
-        />
+        {workspaceView.kind === "members" ? (
+          <MemberWorkloadOverview
+            title={workspaceView.title}
+            description={workspaceView.description}
+            members={workspaceView.members}
+            totalIssueCount={tasks.length}
+          />
+        ) : (
+          <TaskList
+            title={workspaceView.title}
+            description={workspaceView.description}
+            tasks={showEmpty ? [] : visibleTasks}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={(taskId) => {
+              setSelectedTaskId(taskId);
+              setIsCreating(false);
+            }}
+            onCreateIssue={openCreateIssue}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            scope={scope}
+            onScopeChange={setScope}
+            filters={filters}
+            onFiltersChange={setFilters}
+            activeFilters={activeFilters}
+            totalCount={scopedTasks.length}
+            showScopeToggle={workspaceView.allowsScope}
+            loading={showLoading}
+            showEmpty={showEmpty}
+            assignees={ASSIGNEES}
+          />
+        )}
 
         <AnimatePresence>
           {isPanelOpen ? (

@@ -32,6 +32,8 @@ import type { TaskScope, TaskViewMode } from "@/lib/workspace-storage";
 type TaskSort = "default" | "priority" | "due-date" | "newest" | "title";
 
 type TaskListProps = {
+  title: string;
+  description: string;
   tasks: Task[];
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
@@ -44,6 +46,7 @@ type TaskListProps = {
   onFiltersChange: (filters: TaskFilters) => void;
   activeFilters: boolean;
   totalCount: number;
+  showScopeToggle: boolean;
   loading: boolean;
   showEmpty: boolean;
   assignees: Assignee[];
@@ -91,6 +94,8 @@ function compareOptionalDate(a?: string, b?: string) {
 }
 
 export function TaskList({
+  title,
+  description,
   tasks,
   selectedTaskId,
   onSelectTask,
@@ -103,6 +108,7 @@ export function TaskList({
   onFiltersChange,
   activeFilters,
   totalCount,
+  showScopeToggle,
   loading,
   showEmpty,
   assignees,
@@ -287,26 +293,33 @@ export function TaskList({
         style={{ borderColor: "var(--border)" }}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-            <LayoutList className="h-4 w-4" />
-            All Issues
-          </span>
-          <div className="flex rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
-            {(["all", "mine"] as TaskScope[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                className="rounded px-2 py-1 text-xs capitalize"
-                style={{
-                  backgroundColor: scope === option ? "var(--bg-overlay)" : "transparent",
-                  color: scope === option ? "var(--text-primary)" : "var(--text-muted)",
-                }}
-                onClick={() => onScopeChange(option)}
-              >
-                {option === "all" ? "All" : "My Issues"}
-              </button>
-            ))}
+          <div className="min-w-0">
+            <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+              <LayoutList className="h-4 w-4 shrink-0" />
+              <span className="truncate">{title}</span>
+            </span>
+            <p className="mt-0.5 truncate text-xs" style={{ color: "var(--text-muted)" }}>
+              {description}
+            </p>
           </div>
+          {showScopeToggle ? (
+            <div className="flex shrink-0 rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
+              {(["all", "mine"] as TaskScope[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className="rounded px-2 py-1 text-xs capitalize"
+                  style={{
+                    backgroundColor: scope === option ? "var(--bg-overlay)" : "transparent",
+                    color: scope === option ? "var(--text-primary)" : "var(--text-muted)",
+                  }}
+                  onClick={() => onScopeChange(option)}
+                >
+                  {option === "all" ? "All" : "My Issues"}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <span className="font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
             {tasks.length}/{totalCount}
           </span>
