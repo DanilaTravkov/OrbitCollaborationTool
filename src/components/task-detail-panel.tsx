@@ -6,7 +6,9 @@ import {
   CalendarDays,
   ChevronDown,
   CircleEllipsis,
+  ExternalLink,
   Flag,
+  Link2,
   Send,
   Tag,
   Trash2,
@@ -21,6 +23,7 @@ type TaskDetailPanelProps = {
   isCreating: boolean;
   projects: Project[];
   assignees: Assignee[];
+  availableTasks: Task[];
   nextIdentifier: string;
   initialStatus?: Status;
   onClose: () => void;
@@ -36,6 +39,7 @@ type EditableTask = {
   priority: Priority;
   assignee: Assignee | null;
   labels: string[];
+  linkedIssueIds: string[];
   dueDate?: string;
   projectId: string;
 };
@@ -54,6 +58,14 @@ const statusOptions: Status[] = [
 
 const priorityOptions: Priority[] = ["urgent", "high", "medium", "low", "none"];
 
+function normalizeLabels(labels: string[]) {
+  return Array.from(new Set(labels.map((label) => label.trim()).filter(Boolean)));
+}
+
+function parseLabels(value: string) {
+  return normalizeLabels(value.split(","));
+}
+
 function toDraft(task: Task | null, defaults: { assignee: Assignee | null; projectId: string; status: Status }): EditableTask {
   if (!task) {
     return {
@@ -63,6 +75,7 @@ function toDraft(task: Task | null, defaults: { assignee: Assignee | null; proje
       priority: "medium",
       assignee: defaults.assignee,
       labels: [],
+      linkedIssueIds: [],
       dueDate: "",
       projectId: defaults.projectId,
     };
@@ -75,6 +88,7 @@ function toDraft(task: Task | null, defaults: { assignee: Assignee | null; proje
     priority: task.priority,
     assignee: task.assignee,
     labels: task.labels,
+    linkedIssueIds: task.linkedIssueIds ?? [],
     dueDate: task.dueDate ?? "",
     projectId: task.projectId,
   };
@@ -85,6 +99,7 @@ export function TaskDetailPanel({
   isCreating,
   projects,
   assignees,
+  availableTasks,
   nextIdentifier,
   initialStatus,
   onClose,
@@ -98,6 +113,7 @@ export function TaskDetailPanel({
   const [labelsInput, setLabelsInput] = useState("");
   const [activityInput, setActivityInput] = useState("");
   const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [fullViewOpen, setFullViewOpen] = useState(false);
   const [draft, setDraft] = useState<EditableTask>(() =>
     toDraft(task, {
       assignee: assignees[0] ?? null,
@@ -117,6 +133,7 @@ export function TaskDetailPanel({
     setLabelsInput(task?.labels.join(", ") ?? "");
     setDeleteConfirming(false);
     setOpenDropdown(null);
+    setFullViewOpen(false);
   }, [assignees, initialStatus, isCreating, projects, task]);
 
   useEffect(() => {
@@ -140,6 +157,26 @@ export function TaskDetailPanel({
   );
 
   const identifier = isCreating ? nextIdentifier : task?.identifier ?? "UNKNOWN";
+  const linkableTasks = useMemo(
+    () => availableTasks.filter((entry) => entry.id !== task?.id),
+    [availableTasks, task?.id]
+  );
+  const linkedTasks = useMemo(
+    () => linkableTasks.filter((entry) => draft.linkedIssueIds.includes(entry.id)),
+    [draft.linkedIssueIds, linkableTasks]
+  );
+  const popularLabels = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    availableTasks
+      .filter((entry) => entry.projectId === draft.projectId)
+      .flatMap((entry) => entry.labels)
+      .forEach((label) => counts.set(label, (counts.get(label) ?? 0) + 1));
+
+    return Array.from(counts.entries())
+      .sort(([labelA, countA], [labelB, countB]) => countB - countA || labelA.localeCompare(labelB))
+      .map(([label]) => label);
+  }, [availableTasks, draft.projectId]);
 
   function syncTask(nextDraft: EditableTask) {
     if (!task || isCreating) {
@@ -154,6 +191,7 @@ export function TaskDetailPanel({
       priority: nextDraft.priority,
       assignee: nextDraft.assignee,
       labels: nextDraft.labels,
+      linkedIssueIds: nextDraft.linkedIssueIds,
       dueDate: nextDraft.dueDate || undefined,
       projectId: nextDraft.projectId,
     });
@@ -168,14 +206,14 @@ export function TaskDetailPanel({
   }
 
   function handleLabelsBlur() {
-    const parsed = labelsInput
-      .split(",")
-      .map((label) => label.trim())
-      .filter(Boolean);
+    const parsed = parseLabels(labelsInput);
     updateDraft("labels", parsed);
+    setLabelsInput(parsed.join(", "));
   }
 
   function handleCreate() {
+    const labels = normalizeLabels([...draft.labels, ...parseLabels(labelsInput)]);
+
     if (!draft.title.trim()) {
       return;
     }
@@ -186,10 +224,30 @@ export function TaskDetailPanel({
       status: draft.status,
       priority: draft.priority,
       assignee: draft.assignee,
-      labels: draft.labels,
+      labels,
+      linkedIssueIds: draft.linkedIssueIds,
       dueDate: draft.dueDate || undefined,
       projectId: draft.projectId,
     });
+  }
+
+  function toggleLabel(label: string) {
+    const currentLabels = normalizeLabels([...draft.labels, ...parseLabels(labelsInput)]);
+    const labels = currentLabels.includes(label)
+      ? currentLabels.filter((entry) => entry !== label)
+      : [...currentLabels, label];
+
+    updateDraft("labels", labels);
+    setLabelsInput(labels.join(", "));
+  }
+
+  function toggleLinkedIssue(taskId: string) {
+    updateDraft(
+      "linkedIssueIds",
+      draft.linkedIssueIds.includes(taskId)
+        ? draft.linkedIssueIds.filter((entry) => entry !== taskId)
+        : [...draft.linkedIssueIds, taskId]
+    );
   }
 
   function handleDelete() {
@@ -241,6 +299,22 @@ export function TaskDetailPanel({
     );
   }
 
+  function DropdownOption({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+    return (
+      <button
+        type="button"
+        className="block w-full px-2 py-1.5 text-left text-xs hover:bg-[var(--bg-overlay)]"
+        style={{ color: "var(--text-primary)" }}
+        onClick={() => {
+          onClick();
+          setOpenDropdown(null);
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
+
   return (
     <motion.aside
       key="detail-panel"
@@ -248,7 +322,7 @@ export function TaskDetailPanel({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="absolute right-0 top-0 z-20 h-full w-[380px] border-l shadow-2xl"
+      className="absolute right-0 top-0 z-20 h-full w-[440px] max-w-[calc(100vw-220px)] border-l shadow-2xl"
       style={{
         borderColor: "var(--border)",
         backgroundColor: "var(--bg-surface)",
@@ -263,6 +337,17 @@ export function TaskDetailPanel({
             {identifier}
           </span>
           <div className="flex items-center gap-1">
+            {isCreating ? (
+              <button
+                type="button"
+                className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
+                style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                onClick={() => setFullViewOpen(true)}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Full view
+              </button>
+            ) : null}
             {!isCreating ? (
               <div className="relative">
                 <button
@@ -454,14 +539,22 @@ export function TaskDetailPanel({
               {statusLabels[draft.status]}
             </MetaRow>
             <MetaRow icon={Tag} label="Labels">
-              <input
-                value={labelsInput}
-                onChange={(event) => setLabelsInput(event.target.value)}
-                onBlur={handleLabelsBlur}
-                className="w-full bg-transparent text-xs outline-none"
-                style={{ color: "var(--text-muted)" }}
-                placeholder="comma, separated, labels"
-              />
+              <div className="space-y-2">
+                <input
+                  value={labelsInput}
+                  onChange={(event) => setLabelsInput(event.target.value)}
+                  onBlur={handleLabelsBlur}
+                  className="w-full bg-transparent text-xs outline-none placeholder:text-[var(--text-dim)]"
+                  style={{ color: "var(--accent)" }}
+                  placeholder="comma, separated, labels"
+                />
+                <PopularLabelChips
+                  labels={popularLabels}
+                  selectedLabels={normalizeLabels([...draft.labels, ...parseLabels(labelsInput)])}
+                  maxVisible={3}
+                  onSelect={toggleLabel}
+                />
+              </div>
             </MetaRow>
             <MetaRow icon={CalendarDays} label="Due Date">
               <input
@@ -473,6 +566,14 @@ export function TaskDetailPanel({
               />
             </MetaRow>
           </div>
+
+          <LinkedIssuesEditor
+            linkedTasks={linkedTasks}
+            linkableTasks={linkableTasks}
+            linkedIssueIds={draft.linkedIssueIds}
+            onToggle={toggleLinkedIssue}
+            compact
+          />
 
           <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--border)" }}>
             <div className="mb-3 flex rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
@@ -562,6 +663,183 @@ export function TaskDetailPanel({
             </span>
           )}
         </footer>
+
+        {isCreating && fullViewOpen ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-5 py-6"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setFullViewOpen(false);
+              }
+            }}
+          >
+            <section
+              className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-lg border"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-surface)",
+                boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+              }}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <header className="flex h-14 items-center justify-between border-b px-4" style={{ borderColor: "var(--border)" }}>
+                <div className="min-w-0">
+                  <span className="font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
+                    {identifier}
+                  </span>
+                  <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Create issue
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
+                  onClick={() => setFullViewOpen(false)}
+                  aria-label="Close full view"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </header>
+
+              <div className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_310px] lg:overflow-hidden">
+                <div className="min-w-0 overflow-auto p-4">
+                  <textarea
+                    value={draft.title}
+                    onChange={(event) => updateDraft("title", event.target.value)}
+                    placeholder="Issue title"
+                    className="min-h-12 w-full resize-none border-none bg-transparent p-0 text-2xl font-semibold outline-none"
+                    style={{ color: "var(--text-primary)" }}
+                  />
+
+                  <div className="mt-4">
+                    <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                      Description
+                    </span>
+                    <textarea
+                      value={draft.description}
+                      onChange={(event) => updateDraft("description", event.target.value)}
+                      placeholder="Add enough detail for a teammate to pick this up."
+                      className="min-h-56 w-full resize-none rounded-md border px-3 py-3 text-sm outline-none"
+                      style={{
+                        borderColor: "var(--border)",
+                        backgroundColor: "var(--bg-base)",
+                        color: "var(--text-muted)",
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                        Labels
+                      </span>
+                      <input
+                        value={labelsInput}
+                        onChange={(event) => setLabelsInput(event.target.value)}
+                        onBlur={handleLabelsBlur}
+                        className="h-9 w-full rounded-md border bg-transparent px-2 text-xs outline-none placeholder:text-[var(--text-dim)]"
+                        style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+                        placeholder="Backend, Bug, Sprint"
+                      />
+                      <div className="mt-2">
+                        <PopularLabelChips
+                          labels={popularLabels}
+                          selectedLabels={normalizeLabels([...draft.labels, ...parseLabels(labelsInput)])}
+                          maxVisible={10}
+                          onSelect={toggleLabel}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                        Due date
+                      </span>
+                      <input
+                        type="date"
+                        value={draft.dueDate ?? ""}
+                        onChange={(event) => updateDraft("dueDate", event.target.value)}
+                        className="h-9 w-full rounded-md border bg-transparent px-2 text-xs outline-none"
+                        style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <aside className="min-w-0 overflow-auto border-t p-4 lg:border-l lg:border-t-0" style={{ borderColor: "var(--border)" }}>
+                  <div className="grid grid-cols-1 gap-3">
+                    <DropdownButton name="Status" value={statusLabels[draft.status]} dropdownKey="status">
+                      {statusOptions.map((status) => (
+                        <DropdownOption key={status} onClick={() => updateDraft("status", status)}>
+                          {statusLabels[status]}
+                        </DropdownOption>
+                      ))}
+                    </DropdownButton>
+
+                    <DropdownButton name="Priority" value={priorityLabels[draft.priority]} dropdownKey="priority">
+                      {priorityOptions.map((priority) => (
+                        <DropdownOption key={priority} onClick={() => updateDraft("priority", priority)}>
+                          {priorityLabels[priority]}
+                        </DropdownOption>
+                      ))}
+                    </DropdownButton>
+
+                    <DropdownButton
+                      name="Assignee"
+                      value={draft.assignee?.name ?? "Unassigned"}
+                      dropdownKey="assignee"
+                    >
+                      <DropdownOption onClick={() => updateDraft("assignee", null)}>Unassigned</DropdownOption>
+                      {assignees.map((member) => (
+                        <DropdownOption key={member.id} onClick={() => updateDraft("assignee", member)}>
+                          {member.name}
+                        </DropdownOption>
+                      ))}
+                    </DropdownButton>
+
+                    <DropdownButton name="Project" value={project?.name ?? "None"} dropdownKey="project">
+                      {projects.map((entry) => (
+                        <DropdownOption key={entry.id} onClick={() => updateDraft("projectId", entry.id)}>
+                          {entry.name}
+                        </DropdownOption>
+                      ))}
+                    </DropdownButton>
+                  </div>
+
+                  <LinkedIssuesEditor
+                    linkedTasks={linkedTasks}
+                    linkableTasks={linkableTasks}
+                    linkedIssueIds={draft.linkedIssueIds}
+                    onToggle={toggleLinkedIssue}
+                  />
+                </aside>
+              </div>
+
+              <footer className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-t px-4 py-3" style={{ borderColor: "var(--border)" }}>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Linked issues and side-panel fields stay in sync.
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded-md border px-3 py-1.5 text-xs"
+                    style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                    onClick={() => setFullViewOpen(false)}
+                  >
+                    Back to sidebar
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-3 py-1.5 text-xs font-medium"
+                    style={{ backgroundColor: "var(--accent)", color: "#edf0ff" }}
+                    onClick={handleCreate}
+                  >
+                    Create Issue
+                  </button>
+                </div>
+              </footer>
+            </section>
+          </div>
+        ) : null}
       </div>
     </motion.aside>
   );
@@ -584,5 +862,126 @@ function MetaRow({
         {children}
       </div>
     </div>
+  );
+}
+
+function PopularLabelChips({
+  labels,
+  selectedLabels,
+  maxVisible,
+  onSelect,
+}: {
+  labels: string[];
+  selectedLabels: string[];
+  maxVisible: number;
+  onSelect: (label: string) => void;
+}) {
+  const visibleLabels = labels.slice(0, maxVisible);
+
+  if (!visibleLabels.length) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {visibleLabels.map((label) => {
+        const selected = selectedLabels.includes(label);
+
+        return (
+          <button
+            key={label}
+            type="button"
+            className="rounded px-1.5 py-0.5 text-[10px]"
+            style={{
+              backgroundColor: selected ? "var(--accent)" : "#1d2030",
+              color: selected ? "#edf0ff" : "var(--text-muted)",
+            }}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onSelect(label)}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function LinkedIssuesEditor({
+  linkedTasks,
+  linkableTasks,
+  linkedIssueIds,
+  onToggle,
+  compact = false,
+}: {
+  linkedTasks: Task[];
+  linkableTasks: Task[];
+  linkedIssueIds: string[];
+  onToggle: (taskId: string) => void;
+  compact?: boolean;
+}) {
+  return (
+    <section className="mt-4 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="flex items-center gap-2 text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+          <Link2 className="h-3.5 w-3.5 text-[var(--text-dim)]" />
+          Linked issues
+        </span>
+        <span className="font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
+          {linkedIssueIds.length}
+        </span>
+      </div>
+
+      <div className="space-y-1">
+        {linkedTasks.length ? (
+          linkedTasks.map((task) => (
+            <button
+              key={task.id}
+              type="button"
+              className="grid h-8 w-full grid-cols-[64px_minmax(0,1fr)_52px] items-center gap-2 rounded-md border px-2 text-left text-[11px]"
+              style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+              onClick={() => onToggle(task.id)}
+            >
+              <span className="font-mono text-[10px]">{task.identifier}</span>
+              <span className="truncate" style={{ color: "var(--text-primary)" }}>
+                {task.title}
+              </span>
+              <span className="text-right text-[10px]">Remove</span>
+            </button>
+          ))
+        ) : (
+          <p className="rounded-md border px-2 py-2 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
+            No linked issues yet.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+          Add links
+        </span>
+        <div className={`space-y-1 overflow-auto pr-1 ${compact ? "max-h-36" : "max-h-64"}`}>
+          {linkableTasks.map((task) => {
+            const linked = linkedIssueIds.includes(task.id);
+            return (
+              <button
+                key={task.id}
+                type="button"
+                className="grid h-8 w-full grid-cols-[64px_minmax(0,1fr)_58px] items-center gap-2 rounded px-2 text-left text-[11px] hover:bg-[var(--bg-overlay)]"
+                style={{
+                  color: linked ? "var(--text-primary)" : "var(--text-muted)",
+                  backgroundColor: linked ? "var(--bg-overlay)" : "transparent",
+                }}
+                onClick={() => onToggle(task.id)}
+              >
+                <span className="font-mono text-[10px]">{task.identifier}</span>
+                <span className="truncate">{task.title}</span>
+                <span className="text-right text-[10px]">{linked ? "Linked" : "Link"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }

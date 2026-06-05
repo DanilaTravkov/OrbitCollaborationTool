@@ -27,9 +27,8 @@ import { TaskItem } from "@/components/task-item";
 import { KanbanBoard } from "@/components/kanban-board";
 import { LoadingState } from "@/components/loading-state";
 import { EmptyState } from "@/components/empty-state";
+import type { TaskScope, TaskViewMode } from "@/lib/workspace-storage";
 
-export type TaskViewMode = "list" | "board";
-export type TaskScope = "all" | "mine";
 type TaskSort = "default" | "priority" | "due-date" | "newest" | "title";
 
 type TaskListProps = {
