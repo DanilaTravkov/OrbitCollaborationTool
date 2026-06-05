@@ -12,8 +12,11 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { CURRENT_USER } from "@/data";
-import { Project } from "@/types";
+import type { Project } from "@/types";
+import { getSidebarSelectionId } from "@/lib/workspace-views";
+import type { SidebarViewId } from "@/lib/workspace-views";
 
 type SidebarProps = {
   projects: Project[];
@@ -21,7 +24,7 @@ type SidebarProps = {
   onSelectProject: (projectId: string) => void;
 };
 
-const navItems = [
+const navItems: { id: SidebarViewId; label: string; icon: LucideIcon }[] = [
   { id: "inbox", label: "Inbox", icon: Inbox },
   { id: "my-issues", label: "My Issues", icon: Layers2 },
   { id: "all", label: "All Issues", icon: FolderKanban },
@@ -36,10 +39,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const activeNav = useMemo(() => {
-    if (["inbox", "my-issues", "cycles", "members"].includes(selectedProjectId)) {
-      return selectedProjectId;
-    }
-    return "all";
+    return getSidebarSelectionId(selectedProjectId);
   }, [selectedProjectId]);
 
   return (
