@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Bell,
@@ -13,8 +16,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { CURRENT_USER, PROJECTS, TASKS } from "@/data";
-import { Status, Task } from "@/types";
+import type { Status, Task } from "@/types";
 import { statusLabels } from "@/lib/task-utils";
+import { readStoredTasks } from "@/lib/workspace-storage";
 
 const profile = {
   name: CURRENT_USER.name,
@@ -50,14 +54,26 @@ function taskProject(task: Task) {
 }
 
 export default function ProfilePage() {
-  const ownedTasks = TASKS.filter((task) => task.assignee?.id === CURRENT_USER.id);
+  const [tasks, setTasks] = useState<Task[]>(TASKS);
+  const ownedTasks = useMemo(
+    () => tasks.filter((task) => task.assignee?.id === CURRENT_USER.id),
+    [tasks]
+  );
   const activeCount = ownedTasks.filter((task) => task.status !== "done" && task.status !== "cancelled").length;
   const reviewCount = ownedTasks.filter((task) => task.status === "in-review").length;
   const completedCount = ownedTasks.filter((task) => task.status === "done").length;
-  const upcomingTasks = ownedTasks
-    .filter((task) => task.dueDate && task.status !== "done" && task.status !== "cancelled")
-    .sort((a, b) => new Date(a.dueDate ?? "").getTime() - new Date(b.dueDate ?? "").getTime())
-    .slice(0, 3);
+  const upcomingTasks = useMemo(
+    () =>
+      ownedTasks
+        .filter((task) => task.dueDate && task.status !== "done" && task.status !== "cancelled")
+        .sort((a, b) => new Date(a.dueDate ?? "").getTime() - new Date(b.dueDate ?? "").getTime())
+        .slice(0, 3),
+    [ownedTasks]
+  );
+
+  useEffect(() => {
+    setTasks(readStoredTasks());
+  }, []);
 
   return (
     <main className="h-screen overflow-auto" style={{ backgroundColor: "var(--bg-base)" }}>

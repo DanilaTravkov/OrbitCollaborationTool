@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { PROJECTS, TASKS, ASSIGNEES, CURRENT_USER } from "@/data";
-import { Priority, Status, Task } from "@/types";
+import type { Status, Task } from "@/types";
 import { Sidebar } from "@/components/sidebar";
-import { TaskList, TaskScope, TaskViewMode } from "@/components/task-list";
+import { TaskList } from "@/components/task-list";
 import { TaskDetailPanel } from "@/components/task-detail-panel";
 import {
   emptyTaskFilters,
@@ -13,6 +13,11 @@ import {
   matchesTaskFilters,
   TaskFilters,
 } from "@/lib/task-utils";
+import {
+  readWorkspaceState,
+  writeWorkspaceState,
+} from "@/lib/workspace-storage";
+import type { TaskScope, TaskViewMode } from "@/lib/workspace-storage";
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(TASKS);
@@ -25,6 +30,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<TaskViewMode>("list");
   const [scope, setScope] = useState<TaskScope>("all");
   const [filters, setFilters] = useState<TaskFilters>(emptyTaskFilters);
+  const [storageReady, setStorageReady] = useState(false);
 
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
@@ -54,11 +60,40 @@ export default function Home() {
       return;
     }
 
-    const selectedStillVisible = visibleTasks.some((task) => task.id === selectedTaskId);
-    if (!selectedStillVisible && !isCreating) {
+    const selectedStillExists = tasks.some((task) => task.id === selectedTaskId);
+    if (!selectedStillExists && !isCreating) {
       setSelectedTaskId(null);
     }
-  }, [isCreating, selectedTaskId, visibleTasks]);
+  }, [isCreating, selectedTaskId, tasks]);
+
+  useEffect(() => {
+    const storedState = readWorkspaceState();
+
+    setTasks(storedState.tasks);
+    setSelectedProjectId(storedState.preferences.selectedProjectId);
+    setSelectedTaskId(storedState.preferences.selectedTaskId);
+    setViewMode(storedState.preferences.viewMode);
+    setScope(storedState.preferences.scope);
+    setFilters(storedState.preferences.filters);
+    setStorageReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!storageReady) {
+      return;
+    }
+
+    writeWorkspaceState({
+      tasks,
+      preferences: {
+        selectedProjectId,
+        selectedTaskId: selectedTaskId && tasks.some((task) => task.id === selectedTaskId) ? selectedTaskId : null,
+        viewMode,
+        scope,
+        filters,
+      },
+    });
+  }, [filters, scope, selectedProjectId, selectedTaskId, storageReady, tasks, viewMode]);
 
   function buildIdentifier(projectId: string, taskList: Task[]) {
     const project = PROJECTS.find((entry) => entry.id === projectId);
@@ -148,6 +183,7 @@ export default function Home() {
               isCreating={isCreating}
               projects={PROJECTS}
               assignees={ASSIGNEES}
+              availableTasks={tasks}
               nextIdentifier={nextIdentifier}
               initialStatus={createStatus}
               onClose={() => {

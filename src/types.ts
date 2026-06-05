@@ -24,6 +24,7 @@ export type Task = {
   priority: Priority;
   assignee: Assignee | null;
   labels: string[];
+  linkedIssueIds?: string[];
   dueDate?: string;
   createdAt: string;
   projectId: string;
