@@ -15,6 +15,13 @@ export type Assignee = {
   color: string;
 };
 
+export type TaskComment = {
+  id: string;
+  body: string;
+  author: Assignee;
+  createdAt: string;
+};
+
 export type Task = {
   id: string;
   identifier: string;
@@ -25,6 +32,7 @@ export type Task = {
   assignee: Assignee | null;
   labels: string[];
   linkedIssueIds?: string[];
+  comments?: TaskComment[];
   dueDate?: string;
   createdAt: string;
   projectId: string;

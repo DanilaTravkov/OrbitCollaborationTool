@@ -15,7 +15,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Priority, Project, Status, Task, Assignee } from "@/types";
+import type { Priority, Project, Status, Task, Assignee, TaskComment } from "@/types";
 import { priorityLabels, statusLabels } from "@/lib/task-utils";
 
 type TaskDetailPanelProps = {
@@ -23,6 +23,7 @@ type TaskDetailPanelProps = {
   isCreating: boolean;
   projects: Project[];
   assignees: Assignee[];
+  currentUser: Assignee;
   availableTasks: Task[];
   nextIdentifier: string;
   initialStatus?: Status;
@@ -99,6 +100,7 @@ export function TaskDetailPanel({
   isCreating,
   projects,
   assignees,
+  currentUser,
   availableTasks,
   nextIdentifier,
   initialStatus,
@@ -131,6 +133,7 @@ export function TaskDetailPanel({
       })
     );
     setLabelsInput(task?.labels.join(", ") ?? "");
+    setActivityInput("");
     setDeleteConfirming(false);
     setOpenDropdown(null);
     setFullViewOpen(false);
@@ -165,6 +168,7 @@ export function TaskDetailPanel({
     () => linkableTasks.filter((entry) => draft.linkedIssueIds.includes(entry.id)),
     [draft.linkedIssueIds, linkableTasks]
   );
+  const comments = task?.comments ?? [];
   const popularLabels = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -256,6 +260,27 @@ export function TaskDetailPanel({
     }
 
     onDeleteTask(task.id);
+  }
+
+  function handleAddComment() {
+    const body = activityInput.trim();
+
+    if (!task || isCreating || !body) {
+      return;
+    }
+
+    const nextComment: TaskComment = {
+      id: `comment-${Date.now().toString(36)}`,
+      body,
+      author: currentUser,
+      createdAt: new Date().toISOString(),
+    };
+
+    onUpdateTask({
+      ...task,
+      comments: [...(task.comments ?? []), nextComment],
+    });
+    setActivityInput("");
   }
 
   function DropdownButton({
@@ -597,7 +622,7 @@ export function TaskDetailPanel({
                 }}
                 onClick={() => setActiveTab("activity")}
               >
-                Activity
+                Activity{comments.length ? ` ${comments.length}` : ""}
               </button>
             </div>
 
@@ -607,23 +632,26 @@ export function TaskDetailPanel({
               </p>
             ) : (
               <div className="space-y-2">
+                <CommentTimeline comments={comments} />
                 <textarea
                   value={activityInput}
                   onChange={(event) => setActivityInput(event.target.value)}
+                  disabled={isCreating}
                   className="min-h-24 w-full resize-none rounded-md border px-2 py-2 text-xs outline-none"
                   style={{
                     borderColor: "var(--border)",
                     backgroundColor: "var(--bg-base)",
                     color: "var(--text-muted)",
                   }}
-                  placeholder="Leave a comment..."
+                  placeholder={isCreating ? "Create the issue before adding comments." : "Leave a comment..."}
                 />
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium"
+                    disabled={isCreating || !activityInput.trim()}
+                    className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ backgroundColor: "var(--accent)", color: "#edf0ff" }}
-                    onClick={() => setActivityInput("")}
+                    onClick={handleAddComment}
                   >
                     <Send className="h-3.5 w-3.5" />
                     Send
@@ -903,6 +931,63 @@ function PopularLabelChips({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function formatCommentDate(value: string) {
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+function CommentTimeline({ comments }: { comments: TaskComment[] }) {
+  if (!comments.length) {
+    return (
+      <p className="rounded-md border px-2 py-2 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
+        No comments yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {comments.map((comment) => (
+        <article
+          key={comment.id}
+          className="rounded-md border px-2 py-2"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}
+        >
+          <div className="mb-1 flex min-w-0 items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold"
+                style={{ backgroundColor: comment.author.color, color: "#eef0ff" }}
+              >
+                {comment.author.initials}
+              </span>
+              <span className="truncate text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                {comment.author.name}
+              </span>
+            </span>
+            <span className="shrink-0 font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
+              {formatCommentDate(comment.createdAt)}
+            </span>
+          </div>
+          <p className="whitespace-pre-wrap text-xs leading-5" style={{ color: "var(--text-muted)" }}>
+            {comment.body}
+          </p>
+        </article>
+      ))}
     </div>
   );
 }

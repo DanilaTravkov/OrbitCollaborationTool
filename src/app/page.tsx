@@ -203,6 +203,7 @@ export default function Home() {
               isCreating={isCreating}
               projects={PROJECTS}
               assignees={ASSIGNEES}
+              currentUser={CURRENT_USER}
               availableTasks={tasks}
               nextIdentifier={nextIdentifier}
               initialStatus={createStatus}

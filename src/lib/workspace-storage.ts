@@ -1,6 +1,6 @@
 import { TASKS } from "@/data";
 import { STATUS_ORDER } from "@/types";
-import type { Assignee, Priority, Status, Task } from "@/types";
+import type { Assignee, Priority, Status, Task, TaskComment } from "@/types";
 import { emptyTaskFilters } from "@/lib/task-utils";
 import type { DueDateFilter, TaskFilters } from "@/lib/task-utils";
 
@@ -67,6 +67,16 @@ function isAssignee(value: unknown): value is Assignee {
   );
 }
 
+function isTaskComment(value: unknown): value is TaskComment {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.body) &&
+    isAssignee(value.author) &&
+    isString(value.createdAt)
+  );
+}
+
 function isTask(value: unknown): value is Task {
   if (!isRecord(value)) {
     return false;
@@ -74,6 +84,7 @@ function isTask(value: unknown): value is Task {
 
   const assignee = value.assignee;
   const linkedIssueIds = value.linkedIssueIds;
+  const comments = value.comments;
 
   return (
     isString(value.id) &&
@@ -85,6 +96,7 @@ function isTask(value: unknown): value is Task {
     (assignee === null || isAssignee(assignee)) &&
     isStringArray(value.labels) &&
     (linkedIssueIds === undefined || isStringArray(linkedIssueIds)) &&
+    (comments === undefined || (Array.isArray(comments) && comments.every(isTaskComment))) &&
     (value.dueDate === undefined || isString(value.dueDate)) &&
     isString(value.createdAt) &&
     isString(value.projectId)

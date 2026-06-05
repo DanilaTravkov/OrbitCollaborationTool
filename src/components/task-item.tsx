@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MessageSquare, MoreHorizontal } from "lucide-react";
-import { Task } from "@/types";
+import type { Task } from "@/types";
 import { formatDueDate, PriorityIcon, StatusIcon } from "@/lib/task-utils";
 
 type TaskItemProps = {
@@ -15,6 +15,7 @@ export function TaskItem({ task, isSelected, onSelect }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const firstLabel = task.labels[0] ?? "";
   const due = formatDueDate(task.dueDate);
+  const commentCount = task.comments?.length ?? 0;
 
   return (
     <button
@@ -52,8 +53,9 @@ export function TaskItem({ task, isSelected, onSelect }: TaskItemProps) {
 
       {isHovered ? (
         <span className="col-span-2 flex items-center justify-end gap-1">
-          <span className="rounded p-1 text-[var(--text-muted)]">
+          <span className="flex items-center gap-1 rounded p-1 text-[var(--text-muted)]">
             <MessageSquare className="h-3.5 w-3.5" />
+            {commentCount ? <span className="font-mono text-[10px]">{commentCount}</span> : null}
           </span>
           <span className="rounded p-1 text-[var(--text-muted)]">
             <MoreHorizontal className="h-3.5 w-3.5" />

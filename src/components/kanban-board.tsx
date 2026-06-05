@@ -1,7 +1,8 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { STATUS_ORDER, Status, Task } from "@/types";
+import { MessageSquare, Plus } from "lucide-react";
+import { STATUS_ORDER } from "@/types";
+import type { Status, Task } from "@/types";
 import {
   formatDueDate,
   PriorityIcon,
@@ -66,6 +67,7 @@ export function KanbanBoard({
               <div className="flex-1 space-y-2 overflow-auto pb-2">
                 {columnTasks.map((task) => {
                   const selected = selectedTaskId === task.id;
+                  const commentCount = task.comments?.length ?? 0;
 
                   return (
                     <button
@@ -89,6 +91,12 @@ export function KanbanBoard({
                           <PriorityIcon priority={task.priority} />
                           {task.identifier}
                         </span>
+                        {commentCount ? (
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            {commentCount}
+                          </span>
+                        ) : null}
                       </div>
 
                       <p

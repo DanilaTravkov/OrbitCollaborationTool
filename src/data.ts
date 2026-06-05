@@ -27,6 +27,20 @@ export const TASKS: Task[] = [
     priority: "medium",
     assignee: ASSIGNEES[0],
     labels: ["Backend", "Tech Debt"],
+    comments: [
+      {
+        id: "c1",
+        body: "I found a few endpoints still returning legacy error payloads. Capturing them in the migration notes.",
+        author: ASSIGNEES[0],
+        createdAt: "2026-01-05T13:20:00Z",
+      },
+      {
+        id: "c2",
+        body: "Please flag anything that needs a compatibility shim before we draft the v2 contract.",
+        author: ASSIGNEES[1],
+        createdAt: "2026-01-06T09:10:00Z",
+      },
+    ],
     createdAt: "2026-01-05T10:00:00Z",
     projectId: "p1",
   },
@@ -124,6 +138,14 @@ export const TASKS: Task[] = [
     priority: "medium",
     assignee: ASSIGNEES[0],
     labels: ["Accessibility", "Feature"],
+    comments: [
+      {
+        id: "c3",
+        body: "Keyboard focus now reaches the command list, but the live region still needs a clearer result count.",
+        author: ASSIGNEES[0],
+        createdAt: "2026-01-15T10:30:00Z",
+      },
+    ],
     dueDate: "2026-05-19",
     createdAt: "2026-01-14T10:00:00Z",
     projectId: "p1",
