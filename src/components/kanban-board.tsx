@@ -1,6 +1,8 @@
 "use client";
 
-import { MessageSquare, Plus } from "lucide-react";
+import { useState } from "react";
+import type { DragEvent, KeyboardEvent } from "react";
+import { ChevronLeft, ChevronRight, GripVertical, MessageSquare, Plus } from "lucide-react";
 import { STATUS_ORDER } from "@/types";
 import type { Status, Task } from "@/types";
 import {
@@ -14,6 +16,7 @@ type KanbanBoardProps = {
   tasks: Task[];
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
+  onUpdateTaskStatus: (taskId: string, status: Status) => void;
   onCreateIssue: (status?: Status) => void;
 };
 
@@ -30,19 +33,83 @@ export function KanbanBoard({
   tasks,
   selectedTaskId,
   onSelectTask,
+  onUpdateTaskStatus,
   onCreateIssue,
 }: KanbanBoardProps) {
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dropStatus, setDropStatus] = useState<Status | null>(null);
+
+  function moveTask(task: Task, status: Status) {
+    if (task.status === status) {
+      return;
+    }
+
+    onUpdateTaskStatus(task.id, status);
+  }
+
+  function moveTaskByOffset(task: Task, offset: -1 | 1) {
+    const currentIndex = STATUS_ORDER.indexOf(task.status);
+    const nextStatus = STATUS_ORDER[currentIndex + offset];
+
+    if (nextStatus) {
+      moveTask(task, nextStatus);
+    }
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>, taskId: string) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    onSelectTask(taskId);
+  }
+
+  function handleDragStart(event: DragEvent<HTMLDivElement>, taskId: string) {
+    setDraggedTaskId(taskId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", taskId);
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>, status: Status) {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData("text/plain") || draggedTaskId;
+    const task = tasks.find((entry) => entry.id === taskId);
+
+    if (task) {
+      moveTask(task, status);
+    }
+
+    setDraggedTaskId(null);
+    setDropStatus(null);
+  }
+
   return (
     <div className="h-full overflow-x-auto overflow-y-hidden px-4 py-3">
       <div className="flex h-full min-w-max gap-3">
         {STATUS_ORDER.map((status) => {
           const columnTasks = tasks.filter((task) => task.status === status);
+          const isDropTarget = dropStatus === status && draggedTaskId !== null;
 
           return (
             <section
               key={status}
-              className="flex h-full w-[272px] shrink-0 flex-col rounded-xl border p-2"
-              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}
+              className="flex h-full w-[272px] shrink-0 flex-col rounded-xl border p-2 transition-colors"
+              style={{
+                borderColor: isDropTarget ? "var(--accent)" : "var(--border)",
+                backgroundColor: isDropTarget ? "#111426" : "var(--bg-surface)",
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                setDropStatus(status);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setDropStatus(null);
+                }
+              }}
+              onDrop={(event) => handleDrop(event, status)}
             >
               <header className="mb-2 flex h-8 items-center justify-between px-1">
                 <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-primary)" }}>
@@ -59,6 +126,7 @@ export function KanbanBoard({
                   type="button"
                   className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
                   onClick={() => onCreateIssue(status)}
+                  aria-label={`Create issue in ${statusLabels[status]}`}
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>
@@ -68,26 +136,40 @@ export function KanbanBoard({
                 {columnTasks.map((task) => {
                   const selected = selectedTaskId === task.id;
                   const commentCount = task.comments?.length ?? 0;
+                  const statusIndex = STATUS_ORDER.indexOf(task.status);
+                  const previousStatus = STATUS_ORDER[statusIndex - 1];
+                  const nextStatus = STATUS_ORDER[statusIndex + 1];
 
                   return (
-                    <button
+                    <div
                       key={task.id}
-                      type="button"
-                      className="w-full rounded-lg border p-2 text-left"
+                      role="button"
+                      tabIndex={0}
+                      draggable
+                      className="w-full cursor-pointer rounded-lg border p-2 text-left outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                       style={{
                         borderColor: selected ? "var(--accent)" : "var(--border)",
                         backgroundColor: "var(--bg-base)",
                         boxShadow: selected
                           ? "0 0 0 1px rgba(99,102,241,0.45), 0 0 22px rgba(99,102,241,0.22)"
                           : "none",
+                        opacity: draggedTaskId === task.id ? 0.55 : 1,
                       }}
                       onClick={() => onSelectTask(task.id)}
+                      onKeyDown={(event) => handleCardKeyDown(event, task.id)}
+                      onDragStart={(event) => handleDragStart(event, task.id)}
+                      onDragEnd={() => {
+                        setDraggedTaskId(null);
+                        setDropStatus(null);
+                      }}
+                      aria-label={`${task.identifier}: ${task.title}`}
                     >
                       <div
                         className="mb-2 flex items-center justify-between text-[10px] font-mono"
                         style={{ color: "var(--text-muted)" }}
                       >
                         <span className="flex items-center gap-1.5">
+                          <GripVertical className="h-3.5 w-3.5 text-[var(--text-dim)]" />
                           <PriorityIcon priority={task.priority} />
                           {task.identifier}
                         </span>
@@ -124,6 +206,35 @@ export function KanbanBoard({
                         ))}
                       </div>
 
+                      <div className="mb-2 grid grid-cols-2 gap-1">
+                        <button
+                          type="button"
+                          disabled={!previousStatus}
+                          className="flex h-7 items-center justify-center rounded border text-[10px] disabled:cursor-not-allowed disabled:opacity-35"
+                          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            moveTaskByOffset(task, -1);
+                          }}
+                          aria-label={previousStatus ? `Move to ${statusLabels[previousStatus]}` : "No previous status"}
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!nextStatus}
+                          className="flex h-7 items-center justify-center rounded border text-[10px] disabled:cursor-not-allowed disabled:opacity-35"
+                          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            moveTaskByOffset(task, 1);
+                          }}
+                          aria-label={nextStatus ? `Move to ${statusLabels[nextStatus]}` : "No next status"}
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
                           <span
@@ -143,7 +254,7 @@ export function KanbanBoard({
                           {task.assignee?.initials ?? "?"}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

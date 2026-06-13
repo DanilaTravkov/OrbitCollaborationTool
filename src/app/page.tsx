@@ -142,6 +142,10 @@ export default function Home() {
     setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
   }
 
+  function handleUpdateTaskStatus(taskId: string, status: Status) {
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status } : task)));
+  }
+
   function handleDeleteTask(taskId: string) {
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
     setSelectedTaskId(null);
@@ -179,6 +183,7 @@ export default function Home() {
               setSelectedTaskId(taskId);
               setIsCreating(false);
             }}
+            onUpdateTaskStatus={handleUpdateTaskStatus}
             onCreateIssue={openCreateIssue}
             viewMode={viewMode}
             onViewModeChange={setViewMode}

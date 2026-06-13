@@ -37,6 +37,7 @@ type TaskListProps = {
   tasks: Task[];
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
+  onUpdateTaskStatus: (taskId: string, status: Status) => void;
   onCreateIssue: (status?: Status) => void;
   viewMode: TaskViewMode;
   onViewModeChange: (mode: TaskViewMode) => void;
@@ -99,6 +100,7 @@ export function TaskList({
   tasks,
   selectedTaskId,
   onSelectTask,
+  onUpdateTaskStatus,
   onCreateIssue,
   viewMode,
   onViewModeChange,
@@ -204,6 +206,7 @@ export function TaskList({
           tasks={sortedTasks}
           selectedTaskId={selectedTaskId}
           onSelectTask={onSelectTask}
+          onUpdateTaskStatus={onUpdateTaskStatus}
           onCreateIssue={onCreateIssue}
         />
       );
