@@ -8,8 +8,6 @@ export const ASSIGNEES: Assignee[] = [
   { id: "a5", name: "Alex Kim", initials: "AK", color: "#8b5cf6" },
 ];
 
-export const CURRENT_USER = ASSIGNEES[0];
-
 export const PROJECTS: Project[] = [
   { id: "p1", name: "Atlas", identifier: "ATL", color: "#6366f1" },
   { id: "p2", name: "Horizon", identifier: "HRZ", color: "#10b981" },
