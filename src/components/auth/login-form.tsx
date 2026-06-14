@@ -3,9 +3,10 @@
 import { FormEvent, useState } from "react";
 import { Chrome, Github, LockKeyhole, LogIn, Mail } from "lucide-react";
 import { signInWithOAuth } from "@/lib/supabase/auth";
+import { InlineSpinner } from "@/components/inline-spinner";
 
 type LoginFormProps = {
-  onToast: (message: string) => void;
+  onToast: (message: string, variant?: "info" | "error") => void;
   onLogin: (email: string, password: string) => Promise<void>;
 };
 
@@ -13,6 +14,7 @@ export function LoginForm({ onToast, onLogin }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [oauthSubmitting, setOauthSubmitting] = useState<"github" | "google" | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,7 +23,7 @@ export function LoginForm({ onToast, onLogin }: LoginFormProps) {
     try {
       await onLogin(email, password);
     } catch (error) {
-      onToast(error instanceof Error ? error.message : "Login failed.");
+      onToast(error instanceof Error ? error.message : "Login failed.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -82,35 +84,41 @@ export function LoginForm({ onToast, onLogin }: LoginFormProps) {
           opacity: submitting ? 0.72 : 1,
         }}
       >
-        <LogIn className="h-4 w-4" />
-        {submitting ? "Logging in..." : "Login"}
+        {submitting ? <InlineSpinner /> : <LogIn className="h-4 w-4" />}
+        <span>{submitting ? "Logging in" : "Login"}</span>
       </button>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <button
           type="button"
+          disabled={oauthSubmitting !== null}
           className="flex h-10 items-center justify-center gap-2 rounded-md border text-xs font-medium"
-          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)", opacity: oauthSubmitting ? 0.72 : 1 }}
           onClick={() => {
-            signInWithOAuth("github").catch((error: unknown) =>
-              onToast(error instanceof Error ? error.message : "GitHub login failed.")
-            );
+            setOauthSubmitting("github");
+            signInWithOAuth("github").catch((error: unknown) => {
+              setOauthSubmitting(null);
+              onToast(error instanceof Error ? error.message : "GitHub login failed.", "error");
+            });
           }}
         >
-          <Github className="h-4 w-4" />
+          {oauthSubmitting === "github" ? <InlineSpinner /> : <Github className="h-4 w-4" />}
           GitHub
         </button>
         <button
           type="button"
+          disabled={oauthSubmitting !== null}
           className="flex h-10 items-center justify-center gap-2 rounded-md border text-xs font-medium"
-          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)", opacity: oauthSubmitting ? 0.72 : 1 }}
           onClick={() => {
-            signInWithOAuth("google").catch((error: unknown) =>
-              onToast(error instanceof Error ? error.message : "Google login failed.")
-            );
+            setOauthSubmitting("google");
+            signInWithOAuth("google").catch((error: unknown) => {
+              setOauthSubmitting(null);
+              onToast(error instanceof Error ? error.message : "Google login failed.", "error");
+            });
           }}
         >
-          <Chrome className="h-4 w-4" />
+          {oauthSubmitting === "google" ? <InlineSpinner /> : <Chrome className="h-4 w-4" />}
           Google
         </button>
       </div>

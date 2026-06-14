@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Database, LogIn, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Database, LoaderCircle, LogIn, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
 import type { AuthSession } from "@/lib/auth-storage";
 import { getCurrentAuthSession, signOut } from "@/lib/supabase/auth";
 import { PrefetchLink } from "@/components/prefetch-link";
@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const prefetchAuth = useRoutePrefetch("/auth");
   const [session, setSession] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -51,13 +52,18 @@ export default function ProfilePage() {
 
   async function handleLogout() {
     prefetchAuth();
-    await signOut().catch(() => undefined);
-    setSession(null);
-    router.push("/auth");
+    setLoggingOut(true);
+    try {
+      await signOut().catch(() => undefined);
+      setSession(null);
+      router.push("/auth");
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   if (!ready) {
-    return <main className="h-screen" style={{ backgroundColor: "var(--bg-base)" }} />;
+    return <ProfileSkeleton />;
   }
 
   if (!session) {
@@ -121,10 +127,11 @@ export default function ProfilePage() {
           <button
             type="button"
             className="flex h-8 items-center gap-1 rounded-md border px-2 text-xs"
-            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+            style={{ borderColor: "var(--border)", color: "var(--text-muted)", opacity: loggingOut ? 0.72 : 1 }}
+            disabled={loggingOut}
             onClick={handleLogout}
           >
-            <LogOut className="h-3.5 w-3.5" />
+            {loggingOut ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
             Logout
           </button>
         </header>
@@ -171,6 +178,54 @@ export default function ProfilePage() {
               <ProfileRow icon={Database} label="Profile source" value="Supabase Auth" />
               <ProfileRow icon={ShieldCheck} label="Created" value={formatSessionDate(session.createdAt)} />
             </div>
+          </section>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <main className="h-screen overflow-auto" style={{ backgroundColor: "var(--bg-base)" }}>
+      <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-5 py-4">
+        <header className="flex h-14 items-center justify-between border-b" style={{ borderColor: "var(--border)" }}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 animate-pulse rounded-md border bg-[#151824]" style={{ borderColor: "var(--border)" }} />
+            <div className="space-y-2">
+              <div className="h-3.5 w-20 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-32 animate-pulse rounded bg-[#151824]" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+            Loading account
+          </div>
+        </header>
+
+        <section className="grid flex-1 items-start gap-5 py-5 md:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="rounded-lg border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 animate-pulse rounded-full bg-[#1d2030]" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3.5 w-28 animate-pulse rounded bg-[#1d2030]" />
+                <div className="h-3 w-40 animate-pulse rounded bg-[#151824]" />
+              </div>
+            </div>
+          </aside>
+
+          <section className="rounded-lg border" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}>
+            <div className="border-b px-4 py-3" style={{ borderColor: "var(--border)" }}>
+              <div className="h-3.5 w-20 animate-pulse rounded bg-[#1d2030]" />
+              <div className="mt-2 h-3 w-64 animate-pulse rounded bg-[#151824]" />
+            </div>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={`profile-row-${index}`} className="grid grid-cols-[22px_120px_minmax(0,1fr)] items-center gap-3 border-b px-4 py-3 last:border-b-0" style={{ borderColor: "var(--border)" }}>
+                <div className="h-3.5 w-3.5 animate-pulse rounded bg-[#151824]" />
+                <div className="h-3 w-20 animate-pulse rounded bg-[#151824]" />
+                <div className="h-3 w-44 animate-pulse rounded bg-[#1d2030]" />
+              </div>
+            ))}
           </section>
         </section>
       </div>

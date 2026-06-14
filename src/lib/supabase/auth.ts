@@ -5,6 +5,20 @@ import { createAuthSession } from "@/lib/auth-storage";
 import type { AuthSession } from "@/lib/auth-storage";
 import { createClient } from "@/lib/client";
 
+export type EmailSignUpResult = {
+  session: AuthSession | null;
+  confirmationRequired: boolean;
+  email: string;
+};
+
+function getAuthRedirectUrl(path: string) {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  return `${window.location.origin}${path}`;
+}
+
 export function userToAuthSession(user: User): AuthSession {
   return createAuthSession(user.email ?? user.id, {
     id: user.id,
@@ -44,28 +58,40 @@ export async function signInWithEmailPassword(email: string, password: string) {
   return userToAuthSession(data.user);
 }
 
-export async function signUpWithEmailPassword(email: string, password: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
+export async function signUpWithEmailPassword(email: string, password: string): Promise<EmailSignUpResult> {
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      emailRedirectTo: getAuthRedirectUrl("/auth/confirm?next=/"),
+    }),
   });
 
-  if (error) {
-    throw new Error(error.message);
+  const payload: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
+        ? payload.message
+        : "Registration failed.";
+    throw new Error(message);
   }
 
-  if (!data.user) {
-    throw new Error("Signup succeeded but no user was returned.");
-  }
-
-  return userToAuthSession(data.user);
+  return payload as EmailSignUpResult;
 }
 
 export async function signInWithOAuth(provider: "github" | "google") {
   const supabase = createClient();
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
+    options: {
+      redirectTo: getAuthRedirectUrl("/auth/callback?next=/"),
+    },
   });
 
   if (error) {
