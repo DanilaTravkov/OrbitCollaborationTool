@@ -13,10 +13,11 @@ import {
   Funnel,
   X,
 } from "lucide-react";
-import { Assignee, Priority, STATUS_ORDER, Status, Task } from "@/types";
+import { Assignee, ISSUE_TYPE_ORDER, Priority, STATUS_ORDER, Status, Task } from "@/types";
 import {
   DueDateFilter,
   emptyTaskFilters,
+  issueTypeLabels,
   priorityLabels,
   statusLabels,
   StatusIcon,
@@ -215,14 +216,17 @@ export function TaskList({
     return (
       <div className="flex h-full flex-col overflow-hidden">
         <div
-          className="sticky top-0 z-10 grid h-8 grid-cols-[68px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-[10px] uppercase tracking-[0.08em]"
+          className="sticky top-0 z-10 grid h-8 grid-cols-[20px_68px_20px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-[10px] uppercase tracking-[0.08em]"
           style={{
             borderColor: "var(--border)",
             color: "var(--text-dim)",
             backgroundColor: "var(--bg-base)",
           }}
         >
+          <span />
           <span className="font-mono">ID</span>
+          <span />
+          <span />
           <span className="font-mono">Title</span>
           <span className="font-mono">Label</span>
           <span className="font-mono">Due</span>
@@ -418,6 +422,17 @@ export function TaskList({
                       active={filters.priorities.includes(priority)}
                       label={priorityLabels[priority]}
                       onClick={() => updateFilters({ priorities: toggleFilterValue(filters.priorities, priority) })}
+                    />
+                  ))}
+                </FilterGroup>
+
+                <FilterGroup title="Type">
+                  {ISSUE_TYPE_ORDER.map((issueType) => (
+                    <FilterOption
+                      key={issueType}
+                      active={filters.issueTypes.includes(issueType)}
+                      label={issueTypeLabels[issueType]}
+                      onClick={() => updateFilters({ issueTypes: toggleFilterValue(filters.issueTypes, issueType) })}
                     />
                   ))}
                 </FilterGroup>

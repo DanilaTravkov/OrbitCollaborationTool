@@ -1,0 +1,9 @@
+project_id,user_id,role,joined_at
+project_atlas,1,lead,2026-01-01T09:00:00Z
+project_atlas,2,member,2026-01-01T09:05:00Z
+project_atlas,3,member,2026-01-01T09:10:00Z
+project_atlas,4,member,2026-01-01T09:15:00Z
+project_horizon,2,lead,2026-01-01T09:05:00Z
+project_horizon,4,member,2026-01-01T09:15:00Z
+project_nucleus,1,lead,2026-01-01T09:00:00Z
+project_nucleus,5,member,2026-01-01T09:20:00Z

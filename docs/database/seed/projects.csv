@@ -1,0 +1,4 @@
+id,workspace_id,name,key,color,created_at,archived_at
+project_atlas,ws_orbit_product,Atlas,ATL,#6366f1,2026-01-01T09:00:00Z,
+project_horizon,ws_orbit_product,Horizon,HRZ,#10b981,2026-01-01T09:00:00Z,
+project_nucleus,ws_orbit_product,Nucleus,NUC,#f59e0b,2026-01-01T09:00:00Z,

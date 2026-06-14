@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   ChevronDown,
@@ -17,6 +16,7 @@ import type { Project } from "@/types";
 import type { AuthSession } from "@/lib/auth-storage";
 import { getSidebarSelectionId } from "@/lib/workspace-views";
 import type { SidebarViewId } from "@/lib/workspace-views";
+import { PrefetchLink } from "@/components/prefetch-link";
 
 type SidebarProps = {
   projects: Project[];
@@ -157,7 +157,7 @@ export function Sidebar({
           className="flex items-center justify-between rounded-lg border px-2 py-2"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}
         >
-          <Link
+          <PrefetchLink
             href="/profile"
             className="flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
@@ -175,7 +175,7 @@ export function Sidebar({
                 {session.email}
               </span>
             </div>
-          </Link>
+          </PrefetchLink>
           <button
             type="button"
             className="rounded-md p-1"

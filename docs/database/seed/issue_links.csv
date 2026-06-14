@@ -1,0 +1,5 @@
+source_issue_id,target_issue_id,relationship,created_at
+issue_atl_003,issue_atl_006,related,2026-01-15T10:30:00Z
+issue_atl_005,issue_atl_002,related,2026-01-11T09:00:00Z
+issue_hrz_001,issue_hrz_003,blocks,2026-01-13T08:00:00Z
+issue_nuc_002,issue_nuc_001,related,2026-01-07T15:05:00Z

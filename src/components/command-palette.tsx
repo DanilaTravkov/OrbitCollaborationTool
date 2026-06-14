@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Project, Task } from "@/types";
-import { emptyTaskFilters } from "@/lib/task-utils";
+import { emptyTaskFilters, issueTypeLabels } from "@/lib/task-utils";
 import type { TaskFilters } from "@/lib/task-utils";
 import type { TaskViewMode } from "@/lib/workspace-storage";
 
@@ -166,6 +166,7 @@ export function CommandPalette({
           task.description,
           task.status,
           task.priority,
+          issueTypeLabels[task.issueType],
           task.assignee?.name ?? "unassigned",
           projectName,
           ...task.labels,

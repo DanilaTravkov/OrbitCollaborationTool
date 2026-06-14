@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -14,8 +13,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { PROJECTS, TASKS, ASSIGNEES } from "@/data";
-import type { Status, Task } from "@/types";
+import type { Assignee, Project, Status, Task } from "@/types";
 import { Sidebar } from "@/components/sidebar";
 import { TaskList } from "@/components/task-list";
 import { TaskDetailPanel } from "@/components/task-detail-panel";
@@ -33,18 +31,20 @@ import {
 } from "@/lib/workspace-storage";
 import type { TaskScope, TaskViewMode } from "@/lib/workspace-storage";
 import { resolveWorkspaceView } from "@/lib/workspace-views";
-import {
-  authSessionToAssignee,
-  clearAuthSession,
-  readAuthSession,
-} from "@/lib/auth-storage";
+import { authSessionToAssignee } from "@/lib/auth-storage";
 import type { AuthSession } from "@/lib/auth-storage";
+import { getCurrentAuthSession, signOut } from "@/lib/supabase/auth";
+import { requestWorkspaceSnapshot } from "@/lib/api/workspace";
+import { PrefetchLink } from "@/components/prefetch-link";
 
 export default function Home() {
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(TASKS);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(TASKS[0]?.id ?? null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [createStatus, setCreateStatus] = useState<Status | undefined>(undefined);
   const [showLoading, setShowLoading] = useState(false);
@@ -61,13 +61,13 @@ export default function Home() {
   );
   const workspaceAssignees = useMemo(() => {
     if (!currentUser) {
-      return ASSIGNEES;
+      return assignees;
     }
 
-    return ASSIGNEES.some((assignee) => assignee.id === currentUser.id)
-      ? ASSIGNEES
-      : [currentUser, ...ASSIGNEES];
-  }, [currentUser]);
+    return assignees.some((assignee) => assignee.id === currentUser.id)
+      ? assignees
+      : [currentUser, ...assignees];
+  }, [assignees, currentUser]);
 
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
@@ -79,11 +79,11 @@ export default function Home() {
       resolveWorkspaceView({
         selectionId: selectedProjectId,
         tasks,
-        projects: PROJECTS,
+        projects,
         assignees: workspaceAssignees,
         currentUserId: currentUser?.id ?? "",
       }),
-    [currentUser?.id, selectedProjectId, tasks, workspaceAssignees]
+    [currentUser?.id, projects, selectedProjectId, tasks, workspaceAssignees]
   );
 
   const scopedTasks = useMemo(
@@ -112,8 +112,28 @@ export default function Home() {
   }, [isCreating, selectedTaskId, tasks]);
 
   useEffect(() => {
-    setAuthSession(readAuthSession());
-    setAuthReady(true);
+    let active = true;
+
+    getCurrentAuthSession()
+      .then((session) => {
+        if (active) {
+          setAuthSession(session);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAuthSession(null);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setAuthReady(true);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -121,15 +141,45 @@ export default function Home() {
       return;
     }
 
-    const storedState = readWorkspaceState();
+    let active = true;
+    setShowLoading(true);
+    setDataError(null);
 
-    setTasks(storedState.tasks);
-    setSelectedProjectId(storedState.preferences.selectedProjectId);
-    setSelectedTaskId(storedState.preferences.selectedTaskId);
-    setViewMode(storedState.preferences.viewMode);
-    setScope(storedState.preferences.scope);
-    setFilters(storedState.preferences.filters);
-    setStorageReady(true);
+    requestWorkspaceSnapshot()
+      .then((snapshot) => {
+        if (!active) {
+          return;
+        }
+
+        const storedState = readWorkspaceState();
+        const selectedTaskExists =
+          storedState.preferences.selectedTaskId &&
+          snapshot.tasks.some((task) => task.id === storedState.preferences.selectedTaskId);
+
+        setTasks(snapshot.tasks);
+        setProjects(snapshot.projects);
+        setAssignees(snapshot.assignees);
+        setSelectedProjectId(storedState.preferences.selectedProjectId);
+        setSelectedTaskId(selectedTaskExists ? storedState.preferences.selectedTaskId : snapshot.tasks[0]?.id ?? null);
+        setViewMode(storedState.preferences.viewMode);
+        setScope(storedState.preferences.scope);
+        setFilters(storedState.preferences.filters);
+        setStorageReady(true);
+      })
+      .catch((error) => {
+        if (active) {
+          setDataError(error instanceof Error ? error.message : "Failed to load workspace data.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setShowLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [authSession]);
 
   useEffect(() => {
@@ -162,7 +212,7 @@ export default function Home() {
   }, []);
 
   function buildIdentifier(projectId: string, taskList: Task[]) {
-    const project = PROJECTS.find((entry) => entry.id === projectId);
+    const project = projects.find((entry) => entry.id === projectId);
     const prefix = project?.identifier ?? "ORB";
     const maxNumber = taskList.reduce((max, task) => {
       if (!task.identifier.startsWith(`${prefix}-`)) {
@@ -220,8 +270,8 @@ export default function Home() {
     setIsCreating(false);
   }
 
-  function handleLogout() {
-    clearAuthSession();
+  async function handleLogout() {
+    await signOut().catch(() => undefined);
     setAuthSession(null);
     setStorageReady(false);
     setSelectedTaskId(null);
@@ -244,11 +294,37 @@ export default function Home() {
     return <LoggedOutWorkspace />;
   }
 
+  if (dataError) {
+    return (
+      <main className="flex h-screen items-center justify-center px-5" style={{ backgroundColor: "var(--bg-base)" }}>
+        <section
+          className="w-full max-w-md rounded-lg border px-6 py-7"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}
+        >
+          <h1 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+            Workspace request failed
+          </h1>
+          <p className="mt-2 text-sm leading-6" style={{ color: "var(--text-muted)" }}>
+            {dataError}
+          </p>
+          <button
+            type="button"
+            className="mt-5 h-10 rounded-md px-4 text-sm font-semibold"
+            style={{ backgroundColor: "var(--accent)", color: "#edf0ff" }}
+            onClick={handleLogout}
+          >
+            Sign out
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <div className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
       <main className="relative flex h-full overflow-hidden">
         <Sidebar
-          projects={PROJECTS}
+          projects={projects}
           session={authSession}
           selectedProjectId={selectedProjectId}
           onSelectProject={selectWorkspace}
@@ -296,7 +372,7 @@ export default function Home() {
               key={selectedTask?.id ?? "create"}
               task={isCreating ? null : selectedTask}
               isCreating={isCreating}
-              projects={PROJECTS}
+              projects={projects}
               assignees={workspaceAssignees}
               currentUser={currentUser}
               availableTasks={tasks}
@@ -319,7 +395,7 @@ export default function Home() {
           <CommandPalette
             open={commandPaletteOpen}
             tasks={tasks}
-            projects={PROJECTS}
+            projects={projects}
             viewMode={viewMode}
             activeFilters={activeFilters}
             onClose={() => setCommandPaletteOpen(false)}
@@ -403,14 +479,14 @@ function LoggedOutWorkspace() {
           <span>Cycles</span>
         </nav>
 
-        <Link
+        <PrefetchLink
           href="/auth"
           className="flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
           style={{ backgroundColor: "var(--accent)", color: "#edf0ff" }}
         >
           Sign in
           <LogIn className="h-4 w-4" />
-        </Link>
+        </PrefetchLink>
       </header>
 
       <section className="mx-auto grid h-[calc(100vh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-8 px-5 py-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(520px,1fr)]">
@@ -437,7 +513,7 @@ function LoggedOutWorkspace() {
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link
+            <PrefetchLink
               href="/auth"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold"
               style={{
@@ -448,7 +524,7 @@ function LoggedOutWorkspace() {
             >
               Get started
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </PrefetchLink>
             <span className="text-xs" style={{ color: "var(--text-dim)" }}>
               Login or create an account with email and password.
             </span>

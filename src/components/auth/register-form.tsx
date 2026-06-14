@@ -5,7 +5,7 @@ import { LockKeyhole, Mail, UserPlus } from "lucide-react";
 
 type RegisterFormProps = {
   onToast: (message: string) => void;
-  onRegister: (email: string) => void;
+  onRegister: (email: string, password: string) => Promise<void>;
 };
 
 export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
@@ -13,13 +13,14 @@ export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const passwordMismatch = useMemo(
     () => confirmPassword.length > 0 && confirmPassword !== password,
     [confirmPassword, password]
   );
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
 
@@ -28,7 +29,15 @@ export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
       return;
     }
 
-    onRegister(email);
+    setSubmitting(true);
+
+    try {
+      await onRegister(email, password);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : "Registration failed.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -106,15 +115,17 @@ export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
 
       <button
         type="submit"
+        disabled={submitting}
         className="flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold"
         style={{
           backgroundColor: "var(--accent)",
           color: "#edf0ff",
           boxShadow: "0 10px 22px rgba(99,102,241,0.24)",
+          opacity: submitting ? 0.72 : 1,
         }}
       >
         <UserPlus className="h-4 w-4" />
-        Register
+        {submitting ? "Registering..." : "Register"}
       </button>
     </form>
   );

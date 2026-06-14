@@ -1,0 +1,7 @@
+id,name,sort_order,is_terminal
+backlog,Backlog,10,false
+todo,Todo,20,false
+in-progress,In Progress,30,false
+in-review,In Review,40,false
+done,Done,50,true
+cancelled,Cancelled,60,true

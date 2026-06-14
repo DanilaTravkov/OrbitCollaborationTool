@@ -1,0 +1,4 @@
+id,issue_id,author_user_id,body,created_at
+comment_atl_001_001,issue_atl_001,1,I found a few endpoints still returning legacy error payloads. Capturing them in the migration notes.,2026-01-05T13:20:00Z
+comment_atl_001_002,issue_atl_001,2,Please flag anything that needs a compatibility shim before we draft the v2 contract.,2026-01-06T09:10:00Z
+comment_atl_006_001,issue_atl_006,1,"Keyboard focus now reaches the command list, but the live region still needs a clearer result count.",2026-01-15T10:30:00Z

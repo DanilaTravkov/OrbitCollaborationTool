@@ -7,6 +7,8 @@ import { STATUS_ORDER } from "@/types";
 import type { Status, Task } from "@/types";
 import {
   formatDueDate,
+  IssueTypeIcon,
+  issueTypeLabels,
   PriorityIcon,
   StatusIcon,
   statusLabels,
@@ -171,6 +173,9 @@ export function KanbanBoard({
                         <span className="flex items-center gap-1.5">
                           <GripVertical className="h-3.5 w-3.5 text-[var(--text-dim)]" />
                           <PriorityIcon priority={task.priority} />
+                          <span title={issueTypeLabels[task.issueType]}>
+                            <IssueTypeIcon issueType={task.issueType} />
+                          </span>
                           {task.identifier}
                         </span>
                         {commentCount ? (

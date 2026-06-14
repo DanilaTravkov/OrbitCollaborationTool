@@ -8,6 +8,8 @@ export type Status =
 
 export type Priority = "urgent" | "high" | "medium" | "low" | "none";
 
+export type IssueType = "subtask" | "subbug" | "task" | "bug" | "user-story" | "epic";
+
 export type Assignee = {
   id: string;
   name: string;
@@ -29,6 +31,7 @@ export type Task = {
   description: string;
   status: Status;
   priority: Priority;
+  issueType: IssueType;
   assignee: Assignee | null;
   labels: string[];
   linkedIssueIds?: string[];
@@ -52,4 +55,13 @@ export const STATUS_ORDER: Status[] = [
   "in-review",
   "done",
   "cancelled",
+];
+
+export const ISSUE_TYPE_ORDER: IssueType[] = [
+  "subtask",
+  "subbug",
+  "task",
+  "bug",
+  "user-story",
+  "epic",
 ];

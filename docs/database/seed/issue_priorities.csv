@@ -1,0 +1,6 @@
+id,name,sort_order
+urgent,Urgent,10
+high,High,20
+medium,Medium,30
+low,Low,40
+none,None,50

@@ -1,6 +1,6 @@
 import { TASKS } from "@/data";
-import { STATUS_ORDER } from "@/types";
-import type { Assignee, Priority, Status, Task, TaskComment } from "@/types";
+import { ISSUE_TYPE_ORDER, STATUS_ORDER } from "@/types";
+import type { Assignee, IssueType, Priority, Status, Task, TaskComment } from "@/types";
 import { emptyTaskFilters } from "@/lib/task-utils";
 import type { DueDateFilter, TaskFilters } from "@/lib/task-utils";
 
@@ -57,6 +57,10 @@ function isPriority(value: unknown): value is Priority {
   return isString(value) && priorities.includes(value as Priority);
 }
 
+function isIssueType(value: unknown): value is IssueType {
+  return isString(value) && ISSUE_TYPE_ORDER.includes(value as IssueType);
+}
+
 function isAssignee(value: unknown): value is Assignee {
   return (
     isRecord(value) &&
@@ -93,6 +97,7 @@ function isTask(value: unknown): value is Task {
     isString(value.description) &&
     isStatus(value.status) &&
     isPriority(value.priority) &&
+    (value.issueType === undefined || isIssueType(value.issueType)) &&
     (assignee === null || isAssignee(assignee)) &&
     isStringArray(value.labels) &&
     (linkedIssueIds === undefined || isStringArray(linkedIssueIds)) &&
@@ -104,7 +109,14 @@ function isTask(value: unknown): value is Task {
 }
 
 function readTasks(value: unknown) {
-  return Array.isArray(value) && value.every(isTask) ? value : defaultWorkspaceState.tasks;
+  if (!Array.isArray(value) || !value.every(isTask)) {
+    return defaultWorkspaceState.tasks;
+  }
+
+  return value.map((task) => ({
+    ...task,
+    issueType: task.issueType ?? "task",
+  }));
 }
 
 function readFilters(value: unknown): TaskFilters {
@@ -116,6 +128,7 @@ function readFilters(value: unknown): TaskFilters {
     query: isString(value.query) ? value.query : "",
     statuses: Array.isArray(value.statuses) ? value.statuses.filter(isStatus) : [],
     priorities: Array.isArray(value.priorities) ? value.priorities.filter(isPriority) : [],
+    issueTypes: Array.isArray(value.issueTypes) ? value.issueTypes.filter(isIssueType) : [],
     assigneeIds: isStringArray(value.assigneeIds) ? value.assigneeIds : [],
     dueDate: isString(value.dueDate) && dueDateFilters.includes(value.dueDate as DueDateFilter)
       ? (value.dueDate as DueDateFilter)
