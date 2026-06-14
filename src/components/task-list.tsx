@@ -329,6 +329,23 @@ export function TaskList({
         </div>
 
         <div className="flex min-w-0 items-center gap-2">
+          {activeFilters ? (
+            <button
+              type="button"
+              className="flex h-8 shrink-0 items-center gap-1 rounded-md border px-2 text-xs font-semibold"
+              style={{
+                borderColor: "var(--accent)",
+                backgroundColor: "rgba(99,102,241,0.14)",
+                color: "var(--text-primary)",
+                boxShadow: "0 0 0 1px rgba(99,102,241,0.16)",
+              }}
+              onClick={() => onFiltersChange(emptyTaskFilters)}
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear filters
+            </button>
+          ) : null}
+
           <label
             className="flex h-8 w-56 min-w-36 items-center gap-2 rounded-md border px-2"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}

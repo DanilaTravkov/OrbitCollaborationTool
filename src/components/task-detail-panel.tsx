@@ -340,6 +340,190 @@ export function TaskDetailPanel({
     );
   }
 
+  if (isCreating) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-5 py-6"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <motion.section
+          key="create-issue-modal"
+          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.98 }}
+          transition={{ duration: 0.16, ease: "easeOut" }}
+          className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-lg border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-surface)",
+            boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+          }}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <header className="flex h-14 items-center justify-between border-b px-4" style={{ borderColor: "var(--border)" }}>
+            <div className="min-w-0">
+              <span className="font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
+                {identifier}
+              </span>
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Create issue
+              </h2>
+            </div>
+            <button
+              type="button"
+              className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
+              onClick={onClose}
+              aria-label="Close create issue"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </header>
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_310px] lg:overflow-hidden">
+            <div className="min-w-0 overflow-auto p-4">
+              <textarea
+                value={draft.title}
+                onChange={(event) => updateDraft("title", event.target.value)}
+                placeholder="Issue title"
+                className="min-h-12 w-full resize-none border-none bg-transparent p-0 text-2xl font-semibold outline-none"
+                style={{ color: "var(--text-primary)" }}
+              />
+
+              <div className="mt-4">
+                <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                  Description
+                </span>
+                <textarea
+                  value={draft.description}
+                  onChange={(event) => updateDraft("description", event.target.value)}
+                  placeholder="Add enough detail for a teammate to pick this up."
+                  className="min-h-56 w-full resize-none rounded-md border px-3 py-3 text-sm outline-none"
+                  style={{
+                    borderColor: "var(--border)",
+                    backgroundColor: "var(--bg-base)",
+                    color: "var(--text-muted)",
+                  }}
+                />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div>
+                  <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                    Labels
+                  </span>
+                  <input
+                    value={labelsInput}
+                    onChange={(event) => setLabelsInput(event.target.value)}
+                    onBlur={handleLabelsBlur}
+                    className="h-9 w-full rounded-md border bg-transparent px-2 text-xs outline-none placeholder:text-[var(--text-dim)]"
+                    style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+                    placeholder="Backend, Bug, Sprint"
+                  />
+                  <div className="mt-2">
+                    <PopularLabelChips
+                      labels={popularLabels}
+                      selectedLabels={normalizeLabels([...draft.labels, ...parseLabels(labelsInput)])}
+                      maxVisible={10}
+                      onSelect={toggleLabel}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                    Due date
+                  </span>
+                  <input
+                    type="date"
+                    value={draft.dueDate ?? ""}
+                    onChange={(event) => updateDraft("dueDate", event.target.value)}
+                    className="h-9 w-full rounded-md border bg-transparent px-2 text-xs outline-none"
+                    style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <aside className="min-w-0 overflow-auto border-t p-4 lg:border-l lg:border-t-0" style={{ borderColor: "var(--border)" }}>
+              <div className="grid grid-cols-1 gap-3">
+                <DropdownButton name="Status" value={statusLabels[draft.status]} dropdownKey="status">
+                  {statusOptions.map((status) => (
+                    <DropdownOption key={status} onClick={() => updateDraft("status", status)}>
+                      {statusLabels[status]}
+                    </DropdownOption>
+                  ))}
+                </DropdownButton>
+
+                <DropdownButton name="Priority" value={priorityLabels[draft.priority]} dropdownKey="priority">
+                  {priorityOptions.map((priority) => (
+                    <DropdownOption key={priority} onClick={() => updateDraft("priority", priority)}>
+                      {priorityLabels[priority]}
+                    </DropdownOption>
+                  ))}
+                </DropdownButton>
+
+                <DropdownButton
+                  name="Assignee"
+                  value={draft.assignee?.name ?? "Unassigned"}
+                  dropdownKey="assignee"
+                >
+                  <DropdownOption onClick={() => updateDraft("assignee", null)}>Unassigned</DropdownOption>
+                  {assignees.map((member) => (
+                    <DropdownOption key={member.id} onClick={() => updateDraft("assignee", member)}>
+                      {member.name}
+                    </DropdownOption>
+                  ))}
+                </DropdownButton>
+
+                <DropdownButton name="Project" value={project?.name ?? "None"} dropdownKey="project">
+                  {projects.map((entry) => (
+                    <DropdownOption key={entry.id} onClick={() => updateDraft("projectId", entry.id)}>
+                      {entry.name}
+                    </DropdownOption>
+                  ))}
+                </DropdownButton>
+              </div>
+
+              <LinkedIssuesEditor
+                linkedTasks={linkedTasks}
+                linkableTasks={linkableTasks}
+                linkedIssueIds={draft.linkedIssueIds}
+                onToggle={toggleLinkedIssue}
+              />
+            </aside>
+          </div>
+
+          <footer className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-t px-4 py-3" style={{ borderColor: "var(--border)" }}>
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Create a new issue with status, priority, assignee, labels, due date, and linked issues.
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="rounded-md border px-3 py-1.5 text-xs"
+                style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-md px-3 py-1.5 text-xs font-medium"
+                style={{ backgroundColor: "var(--accent)", color: "#edf0ff" }}
+                onClick={handleCreate}
+              >
+                Create Issue
+              </button>
+            </div>
+          </footer>
+        </motion.section>
+      </div>
+    );
+  }
+
   return (
     <motion.aside
       key="detail-panel"

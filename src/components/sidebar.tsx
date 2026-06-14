@@ -8,20 +8,23 @@ import {
   FolderKanban,
   Inbox,
   Layers2,
+  LogOut,
   Search,
-  Settings,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { CURRENT_USER } from "@/data";
 import type { Project } from "@/types";
+import type { AuthSession } from "@/lib/auth-storage";
 import { getSidebarSelectionId } from "@/lib/workspace-views";
 import type { SidebarViewId } from "@/lib/workspace-views";
 
 type SidebarProps = {
   projects: Project[];
+  session: AuthSession;
   selectedProjectId: string;
   onSelectProject: (projectId: string) => void;
+  onOpenCommandPalette: () => void;
+  onLogout: () => void;
 };
 
 const navItems: { id: SidebarViewId; label: string; icon: LucideIcon }[] = [
@@ -34,8 +37,11 @@ const navItems: { id: SidebarViewId; label: string; icon: LucideIcon }[] = [
 
 export function Sidebar({
   projects,
+  session,
   selectedProjectId,
   onSelectProject,
+  onOpenCommandPalette,
+  onLogout,
 }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const activeNav = useMemo(() => {
@@ -65,12 +71,13 @@ export function Sidebar({
         className="mb-3 flex h-9 w-full items-center justify-between rounded-md border px-2 text-xs"
         style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
         type="button"
+        onClick={onOpenCommandPalette}
       >
         <span className="flex items-center gap-2">
           <Search className="h-3.5 w-3.5" />
           Search
         </span>
-        <span className="font-mono text-[10px] text-[var(--text-dim)]">?K</span>
+        <span className="font-mono text-[10px] text-[var(--text-dim)]">Ctrl K</span>
       </button>
 
       <nav className="space-y-1">
@@ -156,27 +163,28 @@ export function Sidebar({
           >
             <div
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
-              style={{ backgroundColor: CURRENT_USER.color, color: "#eef0ff" }}
+              style={{ backgroundColor: session.color, color: "#eef0ff" }}
             >
-              {CURRENT_USER.initials}
+              {session.initials}
             </div>
             <div className="flex min-w-0 flex-col">
               <span className="truncate text-xs font-medium" style={{ color: "var(--text-primary)" }}>
-                {CURRENT_USER.name}
+                {session.name}
               </span>
               <span className="truncate text-[10px]" style={{ color: "var(--text-muted)" }}>
-                Pro plan
+                {session.email}
               </span>
             </div>
           </Link>
-          <Link
-            href="/profile"
+          <button
+            type="button"
             className="rounded-md p-1"
             style={{ color: "var(--text-muted)" }}
-            aria-label="Profile settings"
+            aria-label="Logout"
+            onClick={onLogout}
           >
-            <Settings className="h-3.5 w-3.5" />
-          </Link>
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </aside>
