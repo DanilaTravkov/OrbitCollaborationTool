@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Database, LogIn, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
-import {
-  clearAuthSession,
-  readAuthSession,
-} from "@/lib/auth-storage";
 import type { AuthSession } from "@/lib/auth-storage";
+import { getCurrentAuthSession, signOut } from "@/lib/supabase/auth";
+import { PrefetchLink } from "@/components/prefetch-link";
+import { useRoutePrefetch } from "@/lib/route-prefetch";
 
 function formatSessionDate(value: string) {
   const parsed = new Date(value);
@@ -27,16 +25,33 @@ function formatSessionDate(value: string) {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const prefetchAuth = useRoutePrefetch("/auth");
   const [session, setSession] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setSession(readAuthSession());
-    setReady(true);
+    let active = true;
+
+    getCurrentAuthSession()
+      .then((nextSession) => {
+        if (active) {
+          setSession(nextSession);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setReady(true);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  function handleLogout() {
-    clearAuthSession();
+  async function handleLogout() {
+    prefetchAuth();
+    await signOut().catch(() => undefined);
     setSession(null);
     router.push("/auth");
   }
@@ -64,14 +79,14 @@ export default function ProfilePage() {
           <p className="mt-2 text-sm leading-6" style={{ color: "var(--text-muted)" }}>
             Login or register before viewing account details.
           </p>
-          <Link
+          <PrefetchLink
             href="/auth"
             className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold"
             style={{ backgroundColor: "var(--accent)", color: "#edf0ff" }}
           >
             <LogIn className="h-4 w-4" />
             Go to auth
-          </Link>
+          </PrefetchLink>
         </section>
       </main>
     );
@@ -85,20 +100,20 @@ export default function ProfilePage() {
           style={{ borderColor: "var(--border)" }}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <Link
+            <PrefetchLink
               href="/"
               className="flex h-8 w-8 items-center justify-center rounded-md border text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
               style={{ borderColor: "var(--border)" }}
               aria-label="Back to workspace"
             >
               <ArrowLeft className="h-4 w-4" />
-            </Link>
+            </PrefetchLink>
             <div className="min-w-0">
               <h1 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                 Account
               </h1>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                Local session details awaiting Supabase integration
+                Supabase account session
               </p>
             </div>
           </div>
@@ -146,14 +161,14 @@ export default function ProfilePage() {
                 Session
               </h2>
               <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-                This is a temporary client-side session boundary for the upcoming Supabase API.
+                Account details are loaded from the active Supabase session.
               </p>
             </div>
             <div className="grid gap-0">
               <ProfileRow icon={Mail} label="Email" value={session.email} />
               <ProfileRow icon={UserRound} label="Display name" value={session.name} />
-              <ProfileRow icon={ShieldCheck} label="Auth state" value="Logged in locally" />
-              <ProfileRow icon={Database} label="Profile source" value="Supabase not connected yet" />
+              <ProfileRow icon={ShieldCheck} label="Auth state" value="Logged in with Supabase" />
+              <ProfileRow icon={Database} label="Profile source" value="Supabase Auth" />
               <ProfileRow icon={ShieldCheck} label="Created" value={formatSessionDate(session.createdAt)} />
             </div>
           </section>

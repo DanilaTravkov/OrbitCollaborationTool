@@ -1,0 +1,16 @@
+id,workspace_id,name,color
+label_accessibility,ws_orbit_product,Accessibility,#0ea5e9
+label_ai,ws_orbit_product,AI,#8b5cf6
+label_api,ws_orbit_product,API,#3b82f6
+label_auth,ws_orbit_product,Auth,#6366f1
+label_backend,ws_orbit_product,Backend,#10b981
+label_billing,ws_orbit_product,Billing,#22c55e
+label_design,ws_orbit_product,Design,#f59e0b
+label_devops,ws_orbit_product,DevOps,#64748b
+label_feature,ws_orbit_product,Feature,#14b8a6
+label_frontend,ws_orbit_product,Frontend,#06b6d4
+label_infrastructure,ws_orbit_product,Infrastructure,#475569
+label_research,ws_orbit_product,Research,#a855f7
+label_security,ws_orbit_product,Security,#ef4444
+label_tech_debt,ws_orbit_product,Tech Debt,#f97316
+label_testing,ws_orbit_product,Testing,#eab308

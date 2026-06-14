@@ -1,0 +1,7 @@
+id,name,sort_order
+subtask,Subtask,10
+subbug,Subbug,20
+task,Task,30
+bug,Bug,40
+user-story,User Story,50
+epic,Epic,60

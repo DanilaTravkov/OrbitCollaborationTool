@@ -9,14 +9,15 @@ import {
   ExternalLink,
   Flag,
   Link2,
+  Milestone,
   Send,
   Tag,
   Trash2,
   UserRound,
   X,
 } from "lucide-react";
-import type { Priority, Project, Status, Task, Assignee, TaskComment } from "@/types";
-import { priorityLabels, statusLabels } from "@/lib/task-utils";
+import { ISSUE_TYPE_ORDER, type IssueType, type Priority, type Project, type Status, type Task, type Assignee, type TaskComment } from "@/types";
+import { issueTypeLabels, priorityLabels, statusLabels } from "@/lib/task-utils";
 
 type TaskDetailPanelProps = {
   task: Task | null;
@@ -38,6 +39,7 @@ type EditableTask = {
   description: string;
   status: Status;
   priority: Priority;
+  issueType: IssueType;
   assignee: Assignee | null;
   labels: string[];
   linkedIssueIds: string[];
@@ -45,7 +47,7 @@ type EditableTask = {
   projectId: string;
 };
 
-type DropdownKey = "status" | "priority" | "assignee" | "project" | "actions" | null;
+type DropdownKey = "status" | "priority" | "issueType" | "assignee" | "project" | "actions" | null;
 type PanelTab = "description" | "activity";
 
 const statusOptions: Status[] = [
@@ -74,6 +76,7 @@ function toDraft(task: Task | null, defaults: { assignee: Assignee | null; proje
       description: "",
       status: defaults.status,
       priority: "medium",
+      issueType: "task",
       assignee: defaults.assignee,
       labels: [],
       linkedIssueIds: [],
@@ -87,6 +90,7 @@ function toDraft(task: Task | null, defaults: { assignee: Assignee | null; proje
     description: task.description,
     status: task.status,
     priority: task.priority,
+    issueType: task.issueType,
     assignee: task.assignee,
     labels: task.labels,
     linkedIssueIds: task.linkedIssueIds ?? [],
@@ -193,6 +197,7 @@ export function TaskDetailPanel({
       description: nextDraft.description,
       status: nextDraft.status,
       priority: nextDraft.priority,
+      issueType: nextDraft.issueType,
       assignee: nextDraft.assignee,
       labels: nextDraft.labels,
       linkedIssueIds: nextDraft.linkedIssueIds,
@@ -227,6 +232,7 @@ export function TaskDetailPanel({
       description: draft.description.trim(),
       status: draft.status,
       priority: draft.priority,
+      issueType: draft.issueType,
       assignee: draft.assignee,
       labels,
       linkedIssueIds: draft.linkedIssueIds,
@@ -465,6 +471,14 @@ export function TaskDetailPanel({
                   ))}
                 </DropdownButton>
 
+                <DropdownButton name="Type" value={issueTypeLabels[draft.issueType]} dropdownKey="issueType">
+                  {ISSUE_TYPE_ORDER.map((issueType) => (
+                    <DropdownOption key={issueType} onClick={() => updateDraft("issueType", issueType)}>
+                      {issueTypeLabels[issueType]}
+                    </DropdownOption>
+                  ))}
+                </DropdownButton>
+
                 <DropdownButton
                   name="Assignee"
                   value={draft.assignee?.name ?? "Unassigned"}
@@ -666,6 +680,23 @@ export function TaskDetailPanel({
               ))}
             </DropdownButton>
 
+            <DropdownButton name="Type" value={issueTypeLabels[draft.issueType]} dropdownKey="issueType">
+              {ISSUE_TYPE_ORDER.map((issueType) => (
+                <button
+                  key={issueType}
+                  type="button"
+                  className="block w-full px-2 py-1.5 text-left text-xs hover:bg-[var(--bg-overlay)]"
+                  style={{ color: "var(--text-primary)" }}
+                  onClick={() => {
+                    updateDraft("issueType", issueType);
+                    setOpenDropdown(null);
+                  }}
+                >
+                  {issueTypeLabels[issueType]}
+                </button>
+              ))}
+            </DropdownButton>
+
             <DropdownButton
               name="Assignee"
               value={draft.assignee?.name ?? "Unassigned"}
@@ -743,6 +774,9 @@ export function TaskDetailPanel({
             </MetaRow>
             <MetaRow icon={Flag} label="Priority">
               {priorityLabels[draft.priority]}
+            </MetaRow>
+            <MetaRow icon={Milestone} label="Type">
+              {issueTypeLabels[draft.issueType]}
             </MetaRow>
             <MetaRow icon={CircleEllipsis} label="Status">
               {statusLabels[draft.status]}
@@ -991,6 +1025,14 @@ export function TaskDetailPanel({
                       {priorityOptions.map((priority) => (
                         <DropdownOption key={priority} onClick={() => updateDraft("priority", priority)}>
                           {priorityLabels[priority]}
+                        </DropdownOption>
+                      ))}
+                    </DropdownButton>
+
+                    <DropdownButton name="Type" value={issueTypeLabels[draft.issueType]} dropdownKey="issueType">
+                      {ISSUE_TYPE_ORDER.map((issueType) => (
+                        <DropdownOption key={issueType} onClick={() => updateDraft("issueType", issueType)}>
+                          {issueTypeLabels[issueType]}
                         </DropdownOption>
                       ))}
                     </DropdownButton>

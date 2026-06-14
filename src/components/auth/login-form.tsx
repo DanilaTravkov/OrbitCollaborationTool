@@ -2,19 +2,29 @@
 
 import { FormEvent, useState } from "react";
 import { Chrome, Github, LockKeyhole, LogIn, Mail } from "lucide-react";
+import { signInWithOAuth } from "@/lib/supabase/auth";
 
 type LoginFormProps = {
   onToast: (message: string) => void;
-  onLogin: (email: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
 };
 
 export function LoginForm({ onToast, onLogin }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onLogin(email);
+    setSubmitting(true);
+
+    try {
+      await onLogin(email, password);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : "Login failed.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -63,15 +73,17 @@ export function LoginForm({ onToast, onLogin }: LoginFormProps) {
 
       <button
         type="submit"
+        disabled={submitting}
         className="flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold"
         style={{
           backgroundColor: "var(--accent)",
           color: "#edf0ff",
           boxShadow: "0 10px 22px rgba(99,102,241,0.24)",
+          opacity: submitting ? 0.72 : 1,
         }}
       >
         <LogIn className="h-4 w-4" />
-        Login
+        {submitting ? "Logging in..." : "Login"}
       </button>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -79,7 +91,11 @@ export function LoginForm({ onToast, onLogin }: LoginFormProps) {
           type="button"
           className="flex h-10 items-center justify-center gap-2 rounded-md border text-xs font-medium"
           style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
-          onClick={() => onToast("Login with GitHub is not implemented yet.")}
+          onClick={() => {
+            signInWithOAuth("github").catch((error: unknown) =>
+              onToast(error instanceof Error ? error.message : "GitHub login failed.")
+            );
+          }}
         >
           <Github className="h-4 w-4" />
           GitHub
@@ -88,7 +104,11 @@ export function LoginForm({ onToast, onLogin }: LoginFormProps) {
           type="button"
           className="flex h-10 items-center justify-center gap-2 rounded-md border text-xs font-medium"
           style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
-          onClick={() => onToast("Login with Google is not implemented yet.")}
+          onClick={() => {
+            signInWithOAuth("google").catch((error: unknown) =>
+              onToast(error instanceof Error ? error.message : "Google login failed.")
+            );
+          }}
         >
           <Chrome className="h-4 w-4" />
           Google

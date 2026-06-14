@@ -44,17 +44,17 @@ function initialsFromName(name: string) {
   return initials || "U";
 }
 
-export function createAuthSession(email: string): AuthSession {
+export function createAuthSession(email: string, options: { id?: string; createdAt?: string } = {}): AuthSession {
   const normalizedEmail = email.trim().toLowerCase();
   const name = nameFromEmail(normalizedEmail);
 
   return {
-    id: normalizedEmail,
+    id: options.id ?? normalizedEmail,
     email: normalizedEmail,
     name,
     initials: initialsFromName(name),
     color: sessionColors[hashString(normalizedEmail) % sessionColors.length],
-    createdAt: new Date().toISOString(),
+    createdAt: options.createdAt ?? new Date().toISOString(),
   };
 }
 

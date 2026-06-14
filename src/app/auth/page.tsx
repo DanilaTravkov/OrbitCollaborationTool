@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -16,19 +15,32 @@ import {
 } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
-import { createAuthSession, readAuthSession, writeAuthSession } from "@/lib/auth-storage";
+import {
+  getCurrentAuthSession,
+  signInWithEmailPassword,
+  signUpWithEmailPassword,
+} from "@/lib/supabase/auth";
+import { PrefetchLink } from "@/components/prefetch-link";
+import { useRoutePrefetch } from "@/lib/route-prefetch";
 
 type AuthMode = "login" | "register";
 
 export default function AuthPage() {
   const router = useRouter();
+  const prefetchHome = useRoutePrefetch("/");
   const [mode, setMode] = useState<AuthMode>("login");
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (readAuthSession()) {
-      router.replace("/");
-    }
+    getCurrentAuthSession()
+      .then((session) => {
+        if (session) {
+          router.replace("/");
+        }
+      })
+      .catch(() => {
+        // The auth form remains usable if the initial session check fails.
+      });
   }, [router]);
 
   useEffect(() => {
@@ -40,8 +52,16 @@ export default function AuthPage() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
-  function handleAuth(email: string) {
-    writeAuthSession(createAuthSession(email));
+  async function handleLogin(email: string, password: string) {
+    prefetchHome();
+    await signInWithEmailPassword(email, password);
+    router.push("/");
+  }
+
+  async function handleRegister(email: string, password: string) {
+    prefetchHome();
+    await signUpWithEmailPassword(email, password);
+    setToast("Account created. Check your email if confirmation is enabled.");
     router.push("/");
   }
 
@@ -53,14 +73,14 @@ export default function AuthPage() {
           style={{ borderColor: "var(--border)" }}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <Link
+            <PrefetchLink
               href="/"
               className="flex h-8 w-8 items-center justify-center rounded-md border text-[var(--text-muted)] hover:bg-[var(--bg-overlay)]"
               style={{ borderColor: "var(--border)" }}
               aria-label="Back to workspace"
             >
               <ArrowLeft className="h-4 w-4" />
-            </Link>
+            </PrefetchLink>
             <div className="min-w-0">
               <h1 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                 Orbit auth
@@ -114,9 +134,9 @@ export default function AuthPage() {
             </div>
 
             {mode === "login" ? (
-              <LoginForm onToast={setToast} onLogin={handleAuth} />
+              <LoginForm onToast={setToast} onLogin={handleLogin} />
             ) : (
-              <RegisterForm onToast={setToast} onRegister={handleAuth} />
+              <RegisterForm onToast={setToast} onRegister={handleRegister} />
             )}
           </section>
 

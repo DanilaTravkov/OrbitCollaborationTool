@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MessageSquare, MoreHorizontal } from "lucide-react";
 import type { Task } from "@/types";
-import { formatDueDate, PriorityIcon, StatusIcon } from "@/lib/task-utils";
+import { formatDueDate, IssueTypeIcon, issueTypeLabels, PriorityIcon, StatusIcon } from "@/lib/task-utils";
 
 type TaskItemProps = {
   task: Task;
@@ -20,7 +20,7 @@ export function TaskItem({ task, isSelected, onSelect }: TaskItemProps) {
   return (
     <button
       type="button"
-      className="relative grid h-[38px] w-full grid-cols-[20px_68px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-left text-xs transition-colors"
+      className="relative grid h-[38px] w-full grid-cols-[20px_68px_20px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-left text-xs transition-colors"
       style={{
         borderColor: "var(--border)",
         backgroundColor: isSelected ? "#161928" : "transparent",
@@ -47,6 +47,10 @@ export function TaskItem({ task, isSelected, onSelect }: TaskItemProps) {
 
       <span className="flex items-center justify-center text-[var(--text-muted)]">
         <StatusIcon status={task.status} />
+      </span>
+
+      <span className="flex items-center justify-center text-[var(--text-muted)]" title={issueTypeLabels[task.issueType]}>
+        <IssueTypeIcon issueType={task.issueType} />
       </span>
 
       <span className="truncate">{task.title}</span>
