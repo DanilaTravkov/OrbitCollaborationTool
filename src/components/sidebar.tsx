@@ -8,6 +8,7 @@ import {
   Inbox,
   Layers2,
   LogOut,
+  LoaderCircle,
   Search,
   Users,
 } from "lucide-react";
@@ -25,6 +26,8 @@ type SidebarProps = {
   onSelectProject: (projectId: string) => void;
   onOpenCommandPalette: () => void;
   onLogout: () => void;
+  loading?: boolean;
+  loggingOut?: boolean;
 };
 
 const navItems: { id: SidebarViewId; label: string; icon: LucideIcon }[] = [
@@ -42,6 +45,8 @@ export function Sidebar({
   onSelectProject,
   onOpenCommandPalette,
   onLogout,
+  loading = false,
+  loggingOut = false,
 }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const activeNav = useMemo(() => {
@@ -121,7 +126,11 @@ export function Sidebar({
 
         {projectsOpen ? (
           <div className="mt-1 space-y-1">
-            {projects.map((project) => {
+            {loading && projects.length === 0 ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={`project-skeleton-${index}`} className="h-8 animate-pulse rounded bg-[#151824]" />
+              ))
+            ) : projects.map((project) => {
               const active = selectedProjectId === project.id;
               return (
                 <button
@@ -181,9 +190,10 @@ export function Sidebar({
             className="rounded-md p-1"
             style={{ color: "var(--text-muted)" }}
             aria-label="Logout"
+            disabled={loggingOut}
             onClick={onLogout}
           >
-            <LogOut className="h-3.5 w-3.5" />
+            {loggingOut ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
           </button>
         </div>
       </div>

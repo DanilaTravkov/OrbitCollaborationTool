@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { LockKeyhole, Mail, UserPlus } from "lucide-react";
+import { CheckCircle2, LockKeyhole, Mail, UserPlus } from "lucide-react";
+import type { EmailSignUpResult } from "@/lib/supabase/auth";
+import { InlineSpinner } from "@/components/inline-spinner";
 
 type RegisterFormProps = {
-  onToast: (message: string) => void;
-  onRegister: (email: string, password: string) => Promise<void>;
+  onToast: (message: string, variant?: "info" | "error") => void;
+  onRegister: (email: string, password: string) => Promise<EmailSignUpResult>;
 };
 
 export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
@@ -14,6 +16,7 @@ export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
 
   const passwordMismatch = useMemo(
     () => confirmPassword.length > 0 && confirmPassword !== password,
@@ -25,19 +28,49 @@ export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
     setSubmitted(true);
 
     if (password !== confirmPassword) {
-      onToast("Confirm password must match password exactly.");
+      onToast("Confirm password must match password exactly.", "error");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      await onRegister(email, password);
+      const result = await onRegister(email, password);
+      if (result.confirmationRequired) {
+        setConfirmationEmail(result.email);
+      }
     } catch (error) {
-      onToast(error instanceof Error ? error.message : "Registration failed.");
+      onToast(error instanceof Error ? error.message : "Registration failed.", "error");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (confirmationEmail) {
+    return (
+      <div className="rounded-lg border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}>
+        <div
+          className="mb-3 flex h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: "rgba(99,102,241,0.16)", color: "var(--accent)" }}
+        >
+          <CheckCircle2 className="h-5 w-5" />
+        </div>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          Activate your account
+        </h3>
+        <p className="mt-2 text-xs leading-5" style={{ color: "var(--text-muted)" }}>
+          We sent an activation link to {confirmationEmail}. Open it to confirm the account, then log in.
+        </p>
+        <button
+          type="button"
+          className="mt-4 h-9 rounded-md border px-3 text-xs font-medium"
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+          onClick={() => setConfirmationEmail(null)}
+        >
+          Use a different email
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -124,8 +157,8 @@ export function RegisterForm({ onToast, onRegister }: RegisterFormProps) {
           opacity: submitting ? 0.72 : 1,
         }}
       >
-        <UserPlus className="h-4 w-4" />
-        {submitting ? "Registering..." : "Register"}
+        {submitting ? <InlineSpinner /> : <UserPlus className="h-4 w-4" />}
+        <span>{submitting ? "Creating account" : "Register"}</span>
       </button>
     </form>
   );

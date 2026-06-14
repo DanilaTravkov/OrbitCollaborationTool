@@ -8,6 +8,7 @@ type MemberWorkloadOverviewProps = {
   description: string;
   members: MemberWorkload[];
   totalIssueCount: number;
+  loading?: boolean;
 };
 
 export function MemberWorkloadOverview({
@@ -15,6 +16,7 @@ export function MemberWorkloadOverview({
   description,
   members,
   totalIssueCount,
+  loading = false,
 }: MemberWorkloadOverviewProps) {
   const activeTotal = members.reduce((sum, member) => sum + member.activeCount, 0);
   const reviewTotal = members.reduce((sum, member) => sum + member.reviewCount, 0);
@@ -41,9 +43,9 @@ export function MemberWorkloadOverview({
       </header>
 
       <div className="grid grid-cols-3 border-b" style={{ borderColor: "var(--border)" }}>
-        <Metric icon={ListChecks} label="Active" value={activeTotal} />
-        <Metric icon={Clock3} label="In review" value={reviewTotal} />
-        <Metric icon={AlertTriangle} label="Overdue" value={overdueTotal} />
+        <Metric icon={ListChecks} label="Active" value={activeTotal} loading={loading} />
+        <Metric icon={Clock3} label="In review" value={reviewTotal} loading={loading} />
+        <Metric icon={AlertTriangle} label="Overdue" value={overdueTotal} loading={loading} />
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
@@ -62,7 +64,26 @@ export function MemberWorkloadOverview({
           <span className="text-right">Done</span>
         </div>
 
-        {members.map((member) => (
+        {loading ? (
+          Array.from({ length: 7 }).map((_, index) => (
+            <div
+              key={`member-skeleton-${index}`}
+              className="grid min-h-12 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 animate-pulse rounded-full bg-[#1d2030]" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="h-3 w-28 animate-pulse rounded bg-[#1d2030]" />
+                  <div className="h-2.5 w-16 animate-pulse rounded bg-[#151824]" />
+                </div>
+              </div>
+              {Array.from({ length: 4 }).map((__, cellIndex) => (
+                <div key={`member-skeleton-${index}-${cellIndex}`} className="ml-auto h-3 w-8 animate-pulse rounded bg-[#151824]" />
+              ))}
+            </div>
+          ))
+        ) : members.map((member) => (
           <div
             key={member.assignee.id}
             className="grid min-h-12 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4 text-xs"
@@ -99,10 +120,12 @@ function Metric({
   icon: Icon,
   label,
   value,
+  loading = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
+  loading?: boolean;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2 border-r px-4 py-3 last:border-r-0" style={{ borderColor: "var(--border)" }}>
@@ -111,9 +134,13 @@ function Metric({
         <span className="block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
           {label}
         </span>
-        <span className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {value}
-        </span>
+        {loading ? (
+          <span className="mt-1 block h-4 w-8 animate-pulse rounded bg-[#1d2030]" />
+        ) : (
+          <span className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            {value}
+          </span>
+        )}
       </div>
     </div>
   );

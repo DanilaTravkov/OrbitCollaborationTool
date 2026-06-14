@@ -9,6 +9,7 @@ import {
   KanbanSquare,
   LayoutDashboard,
   LogIn,
+  LoaderCircle,
   MessageSquare,
   Sparkles,
   Users,
@@ -55,6 +56,7 @@ export default function Home() {
   const [filters, setFilters] = useState<TaskFilters>(emptyTaskFilters);
   const [storageReady, setStorageReady] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const currentUser = useMemo(
     () => (authSession ? authSessionToAssignee(authSession) : null),
     [authSession]
@@ -271,12 +273,17 @@ export default function Home() {
   }
 
   async function handleLogout() {
-    await signOut().catch(() => undefined);
-    setAuthSession(null);
-    setStorageReady(false);
-    setSelectedTaskId(null);
-    setIsCreating(false);
-    setCommandPaletteOpen(false);
+    setLoggingOut(true);
+    try {
+      await signOut().catch(() => undefined);
+      setAuthSession(null);
+      setStorageReady(false);
+      setSelectedTaskId(null);
+      setIsCreating(false);
+      setCommandPaletteOpen(false);
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   const preferredProjectId = workspaceView.createProjectId;
@@ -285,9 +292,7 @@ export default function Home() {
   const isPanelOpen = isIssueView && (isCreating || Boolean(selectedTask));
 
   if (!authReady) {
-    return (
-      <div className="h-screen" style={{ backgroundColor: "var(--bg-base)" }} />
-    );
+    return <WorkspaceShellSkeleton />;
   }
 
   if (!authSession || !currentUser) {
@@ -330,6 +335,8 @@ export default function Home() {
           onSelectProject={selectWorkspace}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onLogout={handleLogout}
+          loading={showLoading}
+          loggingOut={loggingOut}
         />
 
         {workspaceView.kind === "members" ? (
@@ -338,6 +345,7 @@ export default function Home() {
             description={workspaceView.description}
             members={workspaceView.members}
             totalIssueCount={tasks.length}
+            loading={showLoading}
           />
         ) : (
           <TaskList
@@ -504,12 +512,12 @@ function LoggedOutWorkspace() {
             <br />
             Track issues.
             <br />
-            Ship together.
+            With no overhead.
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-7" style={{ color: "var(--text-muted)" }}>
-            Orbit gives teams a fast workspace for triaging issues, planning project cycles, reviewing active work,
-            and understanding who owns what without losing the thread.
+            <span className="text-[var(--accent)]">Orbit</span> gives teams a fast workspace for triaging issues, planning project cycles, reviewing active work,
+            and understanding who owns what without losing the thread. All inside a <span className="text-[var(--text-primary)]">simple, modern, lightweight</span> web client.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -525,9 +533,9 @@ function LoggedOutWorkspace() {
               Get started
               <ArrowRight className="h-4 w-4" />
             </PrefetchLink>
-            <span className="text-xs" style={{ color: "var(--text-dim)" }}>
+            {/* <span className="text-xs" style={{ color: "var(--text-dim)" }}>
               Login or create an account with email and password.
-            </span>
+            </span> */}
           </div>
 
           <div className="mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
@@ -628,6 +636,73 @@ function LoggedOutWorkspace() {
         </div>
       </section>
     </main>
+  );
+}
+
+function WorkspaceShellSkeleton() {
+  return (
+    <div className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
+      <main className="flex h-full overflow-hidden">
+        <aside
+          className="flex h-full w-[220px] flex-col border-r px-3 py-3"
+          style={{ backgroundColor: "var(--bg-surface)", borderColor: "var(--border)" }}
+        >
+          <div className="mb-4 flex items-center gap-2 px-2">
+            <div className="h-7 w-7 animate-pulse rounded-md bg-[#1d2030]" />
+            <div className="h-4 w-16 animate-pulse rounded bg-[#1d2030]" />
+          </div>
+          <div className="mb-3 h-9 animate-pulse rounded-md border bg-[#0d0e13]" style={{ borderColor: "var(--border)" }} />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={`nav-${index}`} className="h-8 animate-pulse rounded bg-[#1d2030]" />
+            ))}
+          </div>
+          <div className="mt-5 space-y-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`project-${index}`} className="h-8 animate-pulse rounded bg-[#151824]" />
+            ))}
+          </div>
+          <div className="mt-auto rounded-lg border p-2" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 animate-pulse rounded-full bg-[#1d2030]" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3 w-20 animate-pulse rounded bg-[#1d2030]" />
+                <div className="h-2.5 w-28 animate-pulse rounded bg-[#151824]" />
+              </div>
+            </div>
+          </div>
+        </aside>
+        <section className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-14 items-center justify-between border-b px-4" style={{ borderColor: "var(--border)" }}>
+            <div className="space-y-2">
+              <div className="h-4 w-36 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-64 animate-pulse rounded bg-[#151824]" />
+            </div>
+            <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+              <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+              Checking session
+            </div>
+          </header>
+          <div className="min-h-0 flex-1">
+            <div className="flex h-full flex-col overflow-hidden px-3 pb-4">
+              {Array.from({ length: 10 }).map((_, index) => (
+                <div
+                  key={`row-${index}`}
+                  className="grid h-11 grid-cols-[68px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <div className="h-3 w-12 animate-pulse rounded bg-[#1d2030]" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-[#1d2030]" />
+                  <div className="h-3 w-20 animate-pulse rounded bg-[#151824]" />
+                  <div className="h-3 w-16 animate-pulse rounded bg-[#151824]" />
+                  <div className="h-5 w-5 animate-pulse rounded-full bg-[#1d2030]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
 
