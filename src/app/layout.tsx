@@ -27,7 +27,7 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetBrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full overflow-hidden">{children}</body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
