@@ -510,11 +510,11 @@ export function TaskDetailPanel({
             </aside>
           </div>
 
-          <footer className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-t px-4 py-3" style={{ borderColor: "var(--border)" }}>
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <footer className="flex shrink-0 flex-col items-stretch gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)" }}>
+            <span className="min-w-0 text-xs leading-5" style={{ color: "var(--text-muted)" }}>
               Create a new issue with status, priority, assignee, labels, due date, and linked issues.
             </span>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 justify-end gap-2">
               <button
                 type="button"
                 className="rounded-md border px-3 py-1.5 text-xs"
@@ -545,7 +545,7 @@ export function TaskDetailPanel({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="absolute right-0 top-0 z-20 h-full w-[440px] max-w-[calc(100vw-220px)] border-l shadow-2xl"
+      className="fixed inset-x-3 bottom-3 top-3 z-20 border shadow-2xl lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-0 lg:h-full lg:w-[440px] lg:max-w-[calc(100vw-220px)] lg:border-y-0 lg:border-l lg:border-r-0"
       style={{
         borderColor: "var(--border)",
         backgroundColor: "var(--bg-surface)",

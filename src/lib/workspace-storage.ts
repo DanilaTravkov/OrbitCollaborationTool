@@ -26,7 +26,7 @@ export type WorkspaceState = {
 
 const defaultPreferences: WorkspacePreferences = {
   selectedProjectId: "all",
-  selectedTaskId: TASKS[0]?.id ?? null,
+  selectedTaskId: null,
   viewMode: "list",
   scope: "all",
   filters: emptyTaskFilters,
@@ -140,7 +140,7 @@ function readPreferences(value: unknown, tasks: Task[]): WorkspacePreferences {
   if (!isRecord(value)) {
     return {
       ...defaultPreferences,
-      selectedTaskId: tasks[0]?.id ?? null,
+      selectedTaskId: null,
     };
   }
 

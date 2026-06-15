@@ -154,15 +154,11 @@ export default function Home() {
         }
 
         const storedState = readWorkspaceState();
-        const selectedTaskExists =
-          storedState.preferences.selectedTaskId &&
-          snapshot.tasks.some((task) => task.id === storedState.preferences.selectedTaskId);
-
         setTasks(snapshot.tasks);
         setProjects(snapshot.projects);
         setAssignees(snapshot.assignees);
         setSelectedProjectId(storedState.preferences.selectedProjectId);
-        setSelectedTaskId(selectedTaskExists ? storedState.preferences.selectedTaskId : snapshot.tasks[0]?.id ?? null);
+        setSelectedTaskId(null);
         setViewMode(storedState.preferences.viewMode);
         setScope(storedState.preferences.scope);
         setFilters(storedState.preferences.filters);
@@ -326,8 +322,8 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
-      <main className="relative flex h-full overflow-hidden">
+    <div className="h-[100dvh] overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
+      <main className="relative flex h-full min-h-0 flex-col overflow-hidden lg:flex-row">
         <Sidebar
           projects={projects}
           session={authSession}
@@ -462,7 +458,7 @@ export default function Home() {
 
 function LoggedOutWorkspace() {
   return (
-    <main className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
+    <main className="min-h-[100dvh] overflow-auto" style={{ backgroundColor: "var(--bg-base)" }}>
       <header
         className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between border-b px-5"
         style={{ borderColor: "var(--border)" }}
@@ -497,7 +493,7 @@ function LoggedOutWorkspace() {
         </PrefetchLink>
       </header>
 
-      <section className="mx-auto grid h-[calc(100vh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-8 px-5 py-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(520px,1fr)]">
+      <section className="mx-auto grid min-h-[calc(100dvh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-8 px-5 py-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(520px,1fr)]">
         <div className="min-w-0">
           <div
             className="mb-5 inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs"

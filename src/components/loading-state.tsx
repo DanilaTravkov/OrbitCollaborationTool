@@ -5,8 +5,8 @@ type LoadingStateProps = {
 export function LoadingState({ mode }: LoadingStateProps) {
   if (mode === "board") {
     return (
-      <div className="h-full overflow-x-auto overflow-y-hidden px-4 py-4">
-        <div className="flex h-full min-w-max gap-3">
+      <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden px-3 py-4 sm:px-4">
+        <div className="flex h-full min-h-0 min-w-max gap-3">
           {[3, 2, 1, 3, 2, 1].map((cards, idx) => (
             <div
               key={`column-${idx}`}
@@ -36,33 +36,35 @@ export function LoadingState({ mode }: LoadingStateProps) {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden px-3 pb-4">
-      <div
-        className="grid h-8 grid-cols-[68px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-[10px] uppercase tracking-[0.08em]"
-        style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
-      >
-        <span className="font-mono">ID</span>
-        <span className="font-mono">Title</span>
-        <span className="font-mono">Label</span>
-        <span className="font-mono">Due</span>
-        <span />
-      </div>
-      <div className="flex-1 overflow-auto">
-        {Array.from({ length: 8 }).map((_, idx) => (
-          <div
-            key={`skeleton-row-${idx}`}
-            className="grid h-[38px] grid-cols-[20px_68px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <div className="h-3 w-3 animate-pulse rounded bg-[#1d2030]" />
-            <div className="h-3 w-12 animate-pulse rounded bg-[#1d2030]" />
-            <div className="h-3 w-3 animate-pulse rounded bg-[#1d2030]" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-[#1d2030]" />
-            <div className="h-3 w-20 animate-pulse rounded bg-[#1d2030]" />
-            <div className="h-3 w-16 animate-pulse rounded bg-[#1d2030]" />
-            <div className="h-5 w-5 animate-pulse rounded-full bg-[#1d2030]" />
-          </div>
-        ))}
+    <div className="h-full min-h-0 overflow-auto px-3 pb-4">
+      <div className="flex min-h-full min-w-[720px] flex-col">
+        <div
+          className="grid h-8 grid-cols-[68px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-[10px] uppercase tracking-[0.08em]"
+          style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+        >
+          <span className="font-mono">ID</span>
+          <span className="font-mono">Title</span>
+          <span className="font-mono">Label</span>
+          <span className="font-mono">Due</span>
+          <span />
+        </div>
+        <div className="flex-1">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div
+              key={`skeleton-row-${idx}`}
+              className="grid h-[38px] grid-cols-[20px_68px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div className="h-3 w-3 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-12 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-3 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-20 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-3 w-16 animate-pulse rounded bg-[#1d2030]" />
+              <div className="h-5 w-5 animate-pulse rounded-full bg-[#1d2030]" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

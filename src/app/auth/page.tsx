@@ -194,8 +194,8 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="h-screen overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
-      <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-5 py-3">
+    <main className="min-h-[100dvh] overflow-auto" style={{ backgroundColor: "var(--bg-base)" }}>
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-col px-5 py-3">
         <header
           className="flex h-14 items-center justify-between border-b"
           style={{ borderColor: "var(--border)" }}
@@ -230,7 +230,7 @@ export default function AuthPage() {
 
         <section className="grid min-h-0 flex-1 items-center gap-5 py-5 lg:grid-cols-[420px_minmax(0,1fr)]">
           <section
-            className="h-[536px] w-full rounded-lg border px-6 py-6 sm:px-8"
+            className="min-h-[536px] w-full rounded-lg border px-6 py-6 sm:px-8"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}
           >
             <div className="mb-5 flex rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
@@ -280,7 +280,7 @@ export default function AuthPage() {
           </section>
 
           <aside
-            className="flex h-[536px] flex-col justify-between overflow-hidden rounded-lg border px-6 py-6 sm:px-8"
+            className="flex min-h-[536px] flex-col justify-between overflow-hidden rounded-lg border px-6 py-6 sm:px-8"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}
           >
             <div>

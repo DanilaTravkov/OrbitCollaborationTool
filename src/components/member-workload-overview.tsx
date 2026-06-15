@@ -23,9 +23,9 @@ export function MemberWorkloadOverview({
   const overdueTotal = members.reduce((sum, member) => sum + member.overdueCount, 0);
 
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
+    <section className="flex h-[calc(100dvh-220px)] min-h-[520px] min-w-0 flex-1 flex-col lg:h-full lg:min-h-0" style={{ backgroundColor: "var(--bg-base)" }}>
       <header
-        className="flex min-h-14 items-center justify-between gap-3 border-b px-4"
+        className="flex min-h-14 flex-col items-start justify-between gap-2 border-b px-4 py-3 sm:flex-row sm:items-center"
         style={{ borderColor: "var(--border)" }}
       >
         <div className="min-w-0">
@@ -42,75 +42,77 @@ export function MemberWorkloadOverview({
         </span>
       </header>
 
-      <div className="grid grid-cols-3 border-b" style={{ borderColor: "var(--border)" }}>
+      <div className="grid grid-cols-1 border-b sm:grid-cols-3" style={{ borderColor: "var(--border)" }}>
         <Metric icon={ListChecks} label="Active" value={activeTotal} loading={loading} />
         <Metric icon={Clock3} label="In review" value={reviewTotal} loading={loading} />
         <Metric icon={AlertTriangle} label="Overdue" value={overdueTotal} loading={loading} />
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <div
-          className="sticky top-0 z-10 grid h-8 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4 text-[10px] uppercase tracking-[0.08em]"
-          style={{
-            borderColor: "var(--border)",
-            color: "var(--text-dim)",
-            backgroundColor: "var(--bg-base)",
-          }}
-        >
-          <span>Member</span>
-          <span className="text-right">Assigned</span>
-          <span className="text-right">Active</span>
-          <span className="text-right">Review</span>
-          <span className="text-right">Done</span>
-        </div>
+        <div className="min-w-[560px]">
+          <div
+            className="sticky top-0 z-10 grid h-8 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4 text-[10px] uppercase tracking-[0.08em]"
+            style={{
+              borderColor: "var(--border)",
+              color: "var(--text-dim)",
+              backgroundColor: "var(--bg-base)",
+            }}
+          >
+            <span>Member</span>
+            <span className="text-right">Assigned</span>
+            <span className="text-right">Active</span>
+            <span className="text-right">Review</span>
+            <span className="text-right">Done</span>
+          </div>
 
-        {loading ? (
-          Array.from({ length: 7 }).map((_, index) => (
+          {loading ? (
+            Array.from({ length: 7 }).map((_, index) => (
+              <div
+                key={`member-skeleton-${index}`}
+                className="grid min-h-12 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 animate-pulse rounded-full bg-[#1d2030]" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="h-3 w-28 animate-pulse rounded bg-[#1d2030]" />
+                    <div className="h-2.5 w-16 animate-pulse rounded bg-[#151824]" />
+                  </div>
+                </div>
+                {Array.from({ length: 4 }).map((__, cellIndex) => (
+                  <div key={`member-skeleton-${index}-${cellIndex}`} className="ml-auto h-3 w-8 animate-pulse rounded bg-[#151824]" />
+                ))}
+              </div>
+            ))
+          ) : members.map((member) => (
             <div
-              key={`member-skeleton-${index}`}
-              className="grid min-h-12 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4"
+              key={member.assignee.id}
+              className="grid min-h-12 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4 text-xs"
               style={{ borderColor: "var(--border)" }}
             >
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 animate-pulse rounded-full bg-[#1d2030]" />
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="h-3 w-28 animate-pulse rounded bg-[#1d2030]" />
-                  <div className="h-2.5 w-16 animate-pulse rounded bg-[#151824]" />
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+                  style={{ backgroundColor: member.assignee.color, color: "#eef0ff" }}
+                >
+                  {member.assignee.initials}
+                </span>
+                <div className="min-w-0">
+                  <span className="block truncate font-medium" style={{ color: "var(--text-primary)" }}>
+                    {member.assignee.name}
+                  </span>
+                  <span className="block text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    {member.overdueCount ? `${member.overdueCount} overdue` : "On track"}
+                  </span>
                 </div>
               </div>
-              {Array.from({ length: 4 }).map((__, cellIndex) => (
-                <div key={`member-skeleton-${index}-${cellIndex}`} className="ml-auto h-3 w-8 animate-pulse rounded bg-[#151824]" />
-              ))}
+              <NumberCell value={member.assignedCount} />
+              <NumberCell value={member.activeCount} />
+              <NumberCell value={member.reviewCount} />
+              <NumberCell value={member.completedCount} />
             </div>
-          ))
-        ) : members.map((member) => (
-          <div
-            key={member.assignee.id}
-            className="grid min-h-12 grid-cols-[minmax(160px,1fr)_80px_80px_80px_80px] items-center gap-3 border-b px-4 text-xs"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
-                style={{ backgroundColor: member.assignee.color, color: "#eef0ff" }}
-              >
-                {member.assignee.initials}
-              </span>
-              <div className="min-w-0">
-                <span className="block truncate font-medium" style={{ color: "var(--text-primary)" }}>
-                  {member.assignee.name}
-                </span>
-                <span className="block text-[10px]" style={{ color: "var(--text-muted)" }}>
-                  {member.overdueCount ? `${member.overdueCount} overdue` : "On track"}
-                </span>
-              </div>
-            </div>
-            <NumberCell value={member.assignedCount} />
-            <NumberCell value={member.activeCount} />
-            <NumberCell value={member.reviewCount} />
-            <NumberCell value={member.completedCount} />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
