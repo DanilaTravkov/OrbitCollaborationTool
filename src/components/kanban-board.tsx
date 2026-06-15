@@ -87,8 +87,8 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="h-full overflow-x-auto overflow-y-hidden px-4 py-3">
-      <div className="flex h-full min-w-max gap-3">
+    <div className="h-full min-h-0 overflow-auto overscroll-contain px-3 py-3 sm:px-4">
+      <div className="flex h-full min-h-0 min-w-max gap-3">
         {STATUS_ORDER.map((status) => {
           const columnTasks = tasks.filter((task) => task.status === status);
           const isDropTarget = dropStatus === status && draggedTaskId !== null;
@@ -96,7 +96,7 @@ export function KanbanBoard({
           return (
             <section
               key={status}
-              className="flex h-full w-[272px] shrink-0 flex-col rounded-xl border p-2 transition-colors"
+              className="flex h-full min-h-0 w-[272px] shrink-0 flex-col rounded-xl border p-2 transition-colors"
               style={{
                 borderColor: isDropTarget ? "var(--accent)" : "var(--border)",
                 backgroundColor: isDropTarget ? "#111426" : "var(--bg-surface)",
@@ -134,7 +134,7 @@ export function KanbanBoard({
                 </button>
               </header>
 
-              <div className="flex-1 space-y-2 overflow-auto pb-2">
+              <div className="min-h-0 flex-1 space-y-2 overflow-auto pb-2">
                 {columnTasks.map((task) => {
                   const selected = selectedTaskId === task.id;
                   const commentCount = task.comments?.length ?? 0;

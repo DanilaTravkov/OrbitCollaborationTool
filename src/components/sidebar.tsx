@@ -55,7 +55,7 @@ export function Sidebar({
 
   return (
     <aside
-      className="flex h-full w-[220px] flex-col border-r px-3 py-3"
+      className="flex max-h-[42dvh] w-full shrink-0 flex-col overflow-auto border-b px-3 py-3 lg:h-full lg:max-h-none lg:w-[220px] lg:border-b-0 lg:border-r"
       style={{ backgroundColor: "var(--bg-surface)", borderColor: "var(--border)" }}
     >
       <div className="mb-4 flex items-center gap-2 px-2">
@@ -85,7 +85,7 @@ export function Sidebar({
         <span className="font-mono text-[10px] text-[var(--text-dim)]">Ctrl K</span>
       </button>
 
-      <nav className="space-y-1">
+      <nav className="grid grid-cols-2 gap-1 sm:grid-cols-5 lg:block lg:space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.id === activeNav;
@@ -125,7 +125,7 @@ export function Sidebar({
         </button>
 
         {projectsOpen ? (
-          <div className="mt-1 space-y-1">
+          <div className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2 lg:block lg:space-y-1">
             {loading && projects.length === 0 ? (
               Array.from({ length: 4 }).map((_, index) => (
                 <div key={`project-skeleton-${index}`} className="h-8 animate-pulse rounded bg-[#151824]" />

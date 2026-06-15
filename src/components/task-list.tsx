@@ -120,6 +120,7 @@ export function TaskList({
   const displayMenuRef = useRef<HTMLDivElement>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [displayOpen, setDisplayOpen] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [sortBy, setSortBy] = useState<TaskSort>("default");
   const [collapsed, setCollapsed] = useState<Record<Status, boolean>>({
     backlog: false,
@@ -214,92 +215,317 @@ export function TaskList({
     }
 
     return (
-      <div className="flex h-full flex-col overflow-hidden">
-        <div
-          className="sticky top-0 z-10 grid h-8 grid-cols-[20px_68px_20px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-[10px] uppercase tracking-[0.08em]"
-          style={{
-            borderColor: "var(--border)",
-            color: "var(--text-dim)",
-            backgroundColor: "var(--bg-base)",
-          }}
-        >
-          <span />
-          <span className="font-mono">ID</span>
-          <span />
-          <span />
-          <span className="font-mono">Title</span>
-          <span className="font-mono">Label</span>
-          <span className="font-mono">Due</span>
-          <span />
-        </div>
+      <div className="h-full min-h-0 overflow-auto overscroll-contain">
+        <div className="flex min-h-full min-w-[760px] flex-col">
+          <div
+            className="sticky top-0 z-10 grid h-8 grid-cols-[20px_68px_20px_20px_minmax(0,1fr)_110px_90px_34px] items-center gap-2 border-b px-3 text-[10px] uppercase tracking-[0.08em]"
+            style={{
+              borderColor: "var(--border)",
+              color: "var(--text-dim)",
+              backgroundColor: "var(--bg-base)",
+            }}
+          >
+            <span />
+            <span className="font-mono">ID</span>
+            <span />
+            <span />
+            <span className="font-mono">Title</span>
+            <span className="font-mono">Label</span>
+            <span className="font-mono">Due</span>
+            <span />
+          </div>
 
-        <div className="flex-1 overflow-auto pb-4">
-          {grouped.map(({ status, tasks: statusTasks }) => (
-            <section key={status} className="border-b" style={{ borderColor: "var(--border)" }}>
-              <button
-                type="button"
-                className="group flex h-9 w-full items-center justify-between px-3 text-xs"
-                style={{ color: "var(--text-muted)" }}
-                onMouseEnter={() => setGroupHovered(status)}
-                onMouseLeave={() => setGroupHovered(null)}
-                onClick={() => setCollapsed((prev) => ({ ...prev, [status]: !prev[status] }))}
-              >
-                <span className="flex items-center gap-2">
-                  {collapsed[status] ? (
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  )}
-                  <StatusIcon status={status} />
-                  <span>{statusLabels[status]}</span>
-                  <span
-                    className="rounded-full px-1.5 py-[1px] text-[10px]"
-                    style={{ backgroundColor: "#222638", color: "var(--text-muted)" }}
-                  >
-                    {statusTasks.length}
-                  </span>
-                </span>
-
-                <span
-                  className={`rounded-md p-1 transition-opacity ${
-                    groupHovered === status ? "opacity-100" : "opacity-0"
-                  }`}
-                  style={{ color: "var(--text-dim)" }}
+          <div className="pb-4">
+            {grouped.map(({ status, tasks: statusTasks }) => (
+              <section key={status} className="border-b" style={{ borderColor: "var(--border)" }}>
+                <button
+                  type="button"
+                  className="group flex h-9 w-full items-center justify-between px-3 text-xs"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={() => setGroupHovered(status)}
+                  onMouseLeave={() => setGroupHovered(null)}
+                  onClick={() => setCollapsed((prev) => ({ ...prev, [status]: !prev[status] }))}
                 >
-                  <Plus
-                    className="h-3.5 w-3.5"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onCreateIssue(status);
-                    }}
-                  />
-                </span>
-              </button>
+                  <span className="flex items-center gap-2">
+                    {collapsed[status] ? (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                    <StatusIcon status={status} />
+                    <span>{statusLabels[status]}</span>
+                    <span
+                      className="rounded-full px-1.5 py-[1px] text-[10px]"
+                      style={{ backgroundColor: "#222638", color: "var(--text-muted)" }}
+                    >
+                      {statusTasks.length}
+                    </span>
+                  </span>
 
-              {!collapsed[status]
-                ? statusTasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      isSelected={selectedTaskId === task.id}
-                      onSelect={onSelectTask}
+                  <span
+                    className={`rounded-md p-1 transition-opacity ${
+                      groupHovered === status ? "opacity-100" : "opacity-0"
+                    }`}
+                    style={{ color: "var(--text-dim)" }}
+                  >
+                    <Plus
+                      className="h-3.5 w-3.5"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onCreateIssue(status);
+                      }}
                     />
-                  ))
-                : null}
-            </section>
-          ))}
+                  </span>
+                </button>
+
+                {!collapsed[status]
+                  ? statusTasks.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        isSelected={selectedTaskId === task.id}
+                        onSelect={onSelectTask}
+                      />
+                    ))
+                  : null}
+              </section>
+            ))}
+          </div>
         </div>
       </div>
     );
   })();
 
+  function renderNewIssueButton() {
+    return (
+      <button
+        type="button"
+        onClick={() => onCreateIssue()}
+        className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold"
+        style={{
+          backgroundColor: "var(--accent)",
+          color: "#e6e8f5",
+          boxShadow: "0 8px 18px rgba(99,102,241,0.28)",
+        }}
+      >
+        <Plus className="h-3.5 w-3.5" />
+        New Issue
+      </button>
+    );
+  }
+
+  function renderViewModeSwitch() {
+    return (
+      <div className="flex shrink-0 rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
+        <button
+          type="button"
+          className="rounded p-1"
+          style={{
+            backgroundColor: viewMode === "list" ? "var(--bg-overlay)" : "transparent",
+            color: viewMode === "list" ? "var(--text-primary)" : "var(--text-muted)",
+          }}
+          onClick={() => onViewModeChange("list")}
+          aria-label="List view"
+        >
+          <LayoutList className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          className="rounded p-1"
+          style={{
+            backgroundColor: viewMode === "board" ? "var(--bg-overlay)" : "transparent",
+            color: viewMode === "board" ? "var(--text-primary)" : "var(--text-muted)",
+          }}
+          onClick={() => onViewModeChange("board")}
+          aria-label="Board view"
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
       <header
-        className="flex h-14 items-center justify-between gap-3 border-b px-4"
+        className="flex min-h-14 flex-col items-stretch justify-between gap-3 border-b px-4 py-3 xl:flex-row xl:items-center xl:py-0"
         style={{ borderColor: "var(--border)" }}
       >
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 xl:hidden">
+          <button
+            type="button"
+            className="flex h-8 min-w-0 flex-1 items-center justify-between gap-2 rounded-md border px-2 text-xs font-medium"
+            style={{
+              borderColor: activeFilters || filterPanelOpen ? "var(--accent)" : "var(--border)",
+              color: filterPanelOpen ? "var(--text-primary)" : "var(--text-muted)",
+              backgroundColor: filterPanelOpen ? "var(--bg-overlay)" : "var(--bg-base)",
+            }}
+            onClick={() => setFilterPanelOpen((prev) => !prev)}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Funnel className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Filter issues</span>
+              {activeFilters ? (
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "var(--accent)" }} />
+              ) : null}
+            </span>
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${filterPanelOpen ? "rotate-180" : ""}`} />
+          </button>
+          {renderNewIssueButton()}
+          {renderViewModeSwitch()}
+        </div>
+
+        {filterPanelOpen ? (
+          <div className="grid gap-3 rounded-md border p-3 xl:hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}>
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <div className="min-w-0">
+                <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  <LayoutList className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{title}</span>
+                </span>
+                <p className="mt-0.5 truncate text-xs" style={{ color: "var(--text-muted)" }}>
+                  {description}
+                </p>
+              </div>
+              {showScopeToggle ? (
+                <div className="flex shrink-0 rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
+                  {(["all", "mine"] as TaskScope[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="rounded px-2 py-1 text-xs capitalize"
+                      style={{
+                        backgroundColor: scope === option ? "var(--bg-overlay)" : "transparent",
+                        color: scope === option ? "var(--text-primary)" : "var(--text-muted)",
+                      }}
+                      onClick={() => onScopeChange(option)}
+                    >
+                      {option === "all" ? "All" : "My Issues"}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <span className="font-mono text-[10px]" style={{ color: "var(--text-dim)" }}>
+                {tasks.length}/{totalCount}
+              </span>
+            </div>
+
+            <label
+              className="flex h-8 min-w-0 items-center gap-2 rounded-md border px-2"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}
+            >
+              <Search className="h-3.5 w-3.5 text-[var(--text-dim)]" />
+              <input
+                value={filters.query}
+                onChange={(event) => updateFilters({ query: event.target.value })}
+                placeholder="Search issues"
+                className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+                style={{ color: "var(--text-primary)" }}
+              />
+            </label>
+
+            <FilterGroup title="Status">
+              {STATUS_ORDER.map((status) => (
+                <FilterOption
+                  key={status}
+                  active={filters.statuses.includes(status)}
+                  label={statusLabels[status]}
+                  onClick={() => updateFilters({ statuses: toggleFilterValue(filters.statuses, status) })}
+                />
+              ))}
+            </FilterGroup>
+
+            <FilterGroup title="Priority">
+              {priorityOptions.map((priority) => (
+                <FilterOption
+                  key={priority}
+                  active={filters.priorities.includes(priority)}
+                  label={priorityLabels[priority]}
+                  onClick={() => updateFilters({ priorities: toggleFilterValue(filters.priorities, priority) })}
+                />
+              ))}
+            </FilterGroup>
+
+            <FilterGroup title="Type">
+              {ISSUE_TYPE_ORDER.map((issueType) => (
+                <FilterOption
+                  key={issueType}
+                  active={filters.issueTypes.includes(issueType)}
+                  label={issueTypeLabels[issueType]}
+                  onClick={() => updateFilters({ issueTypes: toggleFilterValue(filters.issueTypes, issueType) })}
+                />
+              ))}
+            </FilterGroup>
+
+            <FilterGroup title="Assignee">
+              {assignees.map((assignee) => (
+                <FilterOption
+                  key={assignee.id}
+                  active={filters.assigneeIds.includes(assignee.id)}
+                  label={assignee.name}
+                  onClick={() => updateFilters({ assigneeIds: toggleFilterValue(filters.assigneeIds, assignee.id) })}
+                />
+              ))}
+              <FilterOption
+                active={filters.assigneeIds.includes("unassigned")}
+                label="Unassigned"
+                onClick={() => updateFilters({ assigneeIds: toggleFilterValue(filters.assigneeIds, "unassigned") })}
+              />
+            </FilterGroup>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label>
+                <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                  Due date
+                </span>
+                <select
+                  value={filters.dueDate}
+                  onChange={(event) => updateFilters({ dueDate: event.target.value as DueDateFilter })}
+                  className="h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none"
+                  style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+                >
+                  {dueDateOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span className="mb-1 block text-[10px] uppercase tracking-[0.08em]" style={{ color: "var(--text-dim)" }}>
+                  Sort by
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value as TaskSort)}
+                  className="h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none"
+                  style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {activeFilters ? (
+              <button
+                type="button"
+                className="flex h-8 w-full items-center justify-center gap-1 rounded-md border text-xs"
+                style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                onClick={() => onFiltersChange(emptyTaskFilters)}
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear filters
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="hidden min-w-0 flex-wrap items-center gap-3 xl:flex">
           <div className="min-w-0">
             <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
               <LayoutList className="h-4 w-4 shrink-0" />
@@ -332,7 +558,7 @@ export function TaskList({
           </span>
         </div>
 
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="hidden min-w-0 items-center gap-2 overflow-x-auto pb-1 xl:flex xl:pb-0">
           {activeFilters ? (
             <button
               type="button"
@@ -351,7 +577,7 @@ export function TaskList({
           ) : null}
 
           <label
-            className="flex h-8 w-56 min-w-36 items-center gap-2 rounded-md border px-2"
+            className="flex h-8 w-48 min-w-36 shrink-0 items-center gap-2 rounded-md border px-2 sm:w-56"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-base)" }}
           >
             <Search className="h-3.5 w-3.5 text-[var(--text-dim)]" />
@@ -364,19 +590,7 @@ export function TaskList({
             />
           </label>
 
-          <button
-            type="button"
-            onClick={() => onCreateIssue()}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold"
-            style={{
-              backgroundColor: "var(--accent)",
-              color: "#e6e8f5",
-              boxShadow: "0 8px 18px rgba(99,102,241,0.28)",
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Issue
-          </button>
+          {renderNewIssueButton()}
 
           <div ref={filterMenuRef} className="relative">
             <button
@@ -535,36 +749,11 @@ export function TaskList({
             ) : null}
           </div>
 
-          <div className="flex shrink-0 rounded-md border p-[2px]" style={{ borderColor: "var(--border)" }}>
-            <button
-              type="button"
-              className="rounded p-1"
-              style={{
-                backgroundColor: viewMode === "list" ? "var(--bg-overlay)" : "transparent",
-                color: viewMode === "list" ? "var(--text-primary)" : "var(--text-muted)",
-              }}
-              onClick={() => onViewModeChange("list")}
-              aria-label="List view"
-            >
-              <LayoutList className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              className="rounded p-1"
-              style={{
-                backgroundColor: viewMode === "board" ? "var(--bg-overlay)" : "transparent",
-                color: viewMode === "board" ? "var(--text-primary)" : "var(--text-muted)",
-              }}
-              onClick={() => onViewModeChange("board")}
-              aria-label="Board view"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          {renderViewModeSwitch()}
         </div>
       </header>
 
-      <div className="min-h-0 flex-1">{content}</div>
+      <div className="min-h-0 flex-1 overflow-hidden">{content}</div>
     </section>
   );
 }
