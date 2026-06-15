@@ -376,7 +376,10 @@ export function TaskList({
         </div>
 
         {filterPanelOpen ? (
-          <div className="grid gap-3 rounded-md border p-3 xl:hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}>
+          <div
+            className="grid max-h-[38dvh] gap-3 overflow-y-auto overscroll-contain rounded-md border p-3 xl:hidden"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-surface)" }}
+          >
             <div className="flex min-w-0 flex-wrap items-center gap-3">
               <div className="min-w-0">
                 <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
